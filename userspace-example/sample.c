@@ -9,6 +9,7 @@ int pfd[2];
 
 
 
+
 int dijkstra() {
 
 	int buffer[1024];
