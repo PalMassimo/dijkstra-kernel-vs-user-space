@@ -196,7 +196,7 @@ int main(int argc, char *argv[]){
 			exit(EXIT_FAILURE);
 		}
 
-		FILE * inPtr=fopen("../grafo.txt", "r"); // occhio alla posizione del file
+		FILE * inPtr=fopen("../input.txt", "r"); // occhio alla posizione del file
 		if(inPtr==NULL){
 			perror("[1st process]: fopen");
 			exit(EXIT_FAILURE);
