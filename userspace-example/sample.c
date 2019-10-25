@@ -106,7 +106,7 @@ void lettore_grafo(int * first_pipe) { // processo 1
 		exit(EXIT_FAILURE);
 	}
 
-	FILE * inPtr=fopen("../input.txt", "r"); // occhio alla posizione del file
+	FILE * inPtr=fopen("../grafo.txt", "r"); // occhio alla posizione del file
 	if(inPtr==NULL){
 		perror("[lettore_grafo]: fopen");
 		exit(EXIT_FAILURE);
