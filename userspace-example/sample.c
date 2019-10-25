@@ -7,23 +7,26 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+
+// TODO: non si può usare un define per NODES ma usare una variabile
 #define NODES 6
 #define INFTY 99999999
 
 typedef struct peer {
-	int id;
-	double distance;
+	int id; // node id
+	double distance; // TODO: double -> long
 } Peer;
 
 typedef struct node {
-	int id;
-	double longitudine;
-	double latitudine;
+	int id; // node id
+	double lon; // lasciamo ma non va passato al kernel module
+	double lat; // lasciamo ma non va passato al kernel module
 	unsigned int num_adjacents;
 	struct peer * adjacent;
 } Node;
 
-double distances[NODES];
+// NON usare array globali ma sposta tutto nelle funzioni
+double distances[NODES];  // TODO: double -> long
 Node * previouses[NODES];
 Node * nodes[NODES];
 
@@ -31,22 +34,36 @@ void print_peers(Node *);
 void print_distances(void);
 void print_previouses(void);
 
+void lettore_grafo() { // processo 1
+    // non usare direttamente le pipe ma usare stdin e stdout
+}
+
+
+void kernel_process() {
+	// non usare direttamente le pipe ma usare stdin e stdout
+
+}
+
+void ricevi_risultati() {
+	// non usare direttamente le pipe ma usare stdin e stdout
+}
+
 int main(int argc, char *argv[]){
 
 	//creation pipe: parent process write, child process read
-	int first_pipe[2];
+	int first_pipe[2]; // va bene qui; però: kernel_process lavora solo con stdin, stdout (vanno preparati prima di chiamare kernel_process)
 	int second_pipe[2];
-	if(pipe(first_pipe)){
+	if(pipe(first_pipe)) {
 		perror("first pipe");
 		exit(EXIT_FAILURE);
 	}
 
-	if(pipe(second_pipe)){
+	if(pipe(second_pipe)) {
 		perror("second pipe");
 		exit(EXIT_FAILURE);
 	}
 
-	switch(fork()){
+	switch(fork()) {
 
 	case -1:
 		perror("[1st process]: fork");
@@ -55,12 +72,16 @@ int main(int argc, char *argv[]){
 
 	case 0: //kernel process
 
+		// TODO: spostare il "kernel process" in kernel_process()
+
 		puts("[kernel]:  started");
-		if(close(first_pipe[1])){
+
+		if(close(first_pipe[1])) {
 			perror("[kernel]:  closing write side of the first pipe");
 			exit(EXIT_FAILURE);
 		}
-		if(close(second_pipe[0])){
+
+		if(close(second_pipe[0])) {
 			perror("[kernel]: closing read side of the second pipe");
 			exit(EXIT_FAILURE);
 		}
@@ -71,23 +92,29 @@ int main(int argc, char *argv[]){
 		}
 
 		int node_id, origin_id, copy_id;
-		double node_latitudine, node_longitudine;
+		double node_lat, node_lon;
 		unsigned int num_adj;
 		Peer * list_adjacent;
+
+		// TODO: aggiungi read del numero di nodi
+
+		// quindi: l'array nodes[] viene allocato DOPO aver ricevuto il parametro numero_di_nodi
+
 		read(first_pipe[0], &copy_id, sizeof(int *));
+
 		origin_id=copy_id;
 		for(unsigned int i=0; i<NODES; i++){
 			read(first_pipe[0], &node_id, sizeof(int *));
-			read(first_pipe[0], &node_latitudine, sizeof(double *));
-			read(first_pipe[0], &node_longitudine, sizeof(double *));
+			read(first_pipe[0], &node_lat, sizeof(double *));
+			read(first_pipe[0], &node_lon, sizeof(double *));
 			read(first_pipe[0], &num_adj, sizeof(unsigned int *));
 
 			list_adjacent=(Peer *) calloc(num_adj, sizeof(Peer));
 
 			nodes[node_id]=malloc(sizeof(Node));
 			nodes[node_id]->id=node_id;
-			nodes[node_id]->latitudine=node_latitudine;
-			nodes[node_id]->longitudine=node_longitudine;
+			nodes[node_id]->lat=node_lat;
+			nodes[node_id]->lon=node_lon;
 			nodes[node_id]->num_adjacents=num_adj;
 			nodes[node_id]->adjacent=list_adjacent;
 
@@ -131,7 +158,15 @@ int main(int argc, char *argv[]){
 			unvisited--;
 		}
 
-		//send results to the second process:
+		// send results to the second process:
+
+		// il terzo processo "non sa" nulla dei dati inviati dal primo processo
+		// quindi il kernel process deve passare "tutto" al terzo processo
+
+		// TODO: scrivere anche il numero di nodi; id del nodo di partenza
+
+		// TODO: usare lo stesso formato dell'input, aggiungendo su ogni riga dist e prev_node
+
 		for(unsigned int i=0; i<NODES; i++){
 			write(second_pipe[1], &(distances[i]), sizeof(double *));
 		}
@@ -153,13 +188,15 @@ int main(int argc, char *argv[]){
 		break;
 
 	default: //first process
+		// TODO: spostare nella funzione lettore_grafo
+
 		puts("[1st process]: after fork");
 		if(close(first_pipe[0])){
 			perror("[1st process]: close read side of the first pipe");
 			exit(EXIT_FAILURE);
 		}
 
-		FILE * inPtr=fopen("/home/massimo/Documenti/Tesi_II/input.txt", "r");
+		FILE * inPtr=fopen("../grafo.txt", "r"); // occhio alla posizione del file
 		if(inPtr==NULL){
 			perror("[1st process]: fopen");
 			exit(EXIT_FAILURE);
@@ -172,14 +209,14 @@ int main(int argc, char *argv[]){
 		while(!feof(inPtr)){
 			unsigned int num_items, num_nodi;
 			int node_id;
-			double new_latitudine, new_longitudine;
+			double new_lat, new_lon;
 			int peer_id;
 			double peer_distance;
-			num_items=fscanf(inPtr, "%d %lf %lf %d", &node_id, &new_latitudine, &new_longitudine, &num_nodi);
+			num_items=fscanf(inPtr, "%d %lf %lf %d", &node_id, &new_lat, &new_lon, &num_nodi);
 			if(num_items==0 || num_items==EOF) break;
 			write(first_pipe[1], &node_id, sizeof(int *));
-			write(first_pipe[1], &new_latitudine, sizeof(double *));
-			write(first_pipe[1], &new_longitudine, sizeof(double *));
+			write(first_pipe[1], &new_lat, sizeof(double *));
+			write(first_pipe[1], &new_lon, sizeof(double *));
 			write(first_pipe[1], &num_nodi, sizeof(unsigned int *));
 
 			for(unsigned int i=0; i<num_nodi; i++){
@@ -202,14 +239,16 @@ int main(int argc, char *argv[]){
 			exit(EXIT_FAILURE);
 			break;
 
-		case 0: //second process
+		case 0: //terzo processo
+
+			// TODO: spostare nella funzione ricevi_risultati
 
 			if(close(second_pipe[1])){
 				perror("[2nd process]: closing write side of the second pipe");
 				exit(EXIT_FAILURE);
 			}
 
-			FILE * outPtr=fopen("/home/massimo/Documenti/Tesi_II/output.txt", "w");
+			FILE * outPtr=fopen("../output.txt", "w"); // occhio alla posizione del file
 			if(outPtr==NULL){
 				perror("[2nd]: fopen");
 				exit(EXIT_FAILURE);
