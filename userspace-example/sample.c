@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <limits.h>
 
-#define INFTY 999999999999
 
 typedef struct peer {
 	unsigned int id; 			// node id
@@ -175,9 +175,9 @@ void kernel_process(int fd_in, int fd_out) {
 
 	fprintf(stdout, "[kernel_process] num_nodes=%u  \n", num_nodes);
 
-	unsigned distances[num_nodes];
-	Node * previouses[num_nodes];
-	Node * nodes[num_nodes];
+	unsigned distances[num_nodes]; // TODO: malloc (e free corrispondente)
+	Node * previouses[num_nodes]; // TODO: malloc (e free corrispondente)
+	Node * nodes[num_nodes]; // TODO: malloc (e free corrispondente)
 
 	for(unsigned i=0; i<num_nodes; i++) {
 		nodes[i]=NULL;
@@ -215,7 +215,7 @@ void kernel_process(int fd_in, int fd_out) {
 
 	Node * origin=nodes[origin_id];
 	for(unsigned int i=0; i<num_nodes; i++){
-		distances[i]=INFTY;
+		distances[i]=UINT_MAX;
 	}
 	distances[origin->id]=0;
 	previouses[origin->id]=nodes[0];
@@ -225,7 +225,7 @@ void kernel_process(int fd_in, int fd_out) {
 	unsigned unvisited=num_nodes;
 	unsigned indice;
 	while(unvisited){
-		unsigned min_distance=INFTY;
+		unsigned min_distance=UINT_MAX;
 		for(unsigned i=0; i<num_nodes; i++){
 			if(distances[i]<min_distance && nodes[i]->visited!=1){
 				min_distance=distances[i];
@@ -235,7 +235,7 @@ void kernel_process(int fd_in, int fd_out) {
 
 //		fprintf(stdout, "[kernel_process] indice=%u\n", indice);
 
-		if(min_distance==INFTY) break;
+		if(min_distance==UINT_MAX) break;
 		Peer * visit=nodes[indice]->adjacent;
 		for(unsigned int i=0; i<nodes[indice]->num_adjacents; i++){
 			if(distances[visit->id]>distances[nodes[indice]->id]+visit->distance){
