@@ -8,15 +8,16 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <time.h>
 
 
 typedef struct peer {
-	unsigned int id; 			// node id
+	unsigned int id;
 	unsigned int distance;
 } Peer;
 
 typedef struct node {
-	unsigned int id;		// node id
+	unsigned int id;
 	double lon; 			// lasciamo ma non va passato al kernel module
 	double lat; 			// lasciamo ma non va passato al kernel module
 	short visited;
@@ -26,14 +27,14 @@ typedef struct node {
 
 void lettore_grafo(char * file_name, int * pipe);
 void kernel_process(int fd_in, int fd_out);
-void ricevi_risultati(char * file_name,int * pipe);
+void ricevi_risultati(char * file_name, int * pipe);
 int main(int argc, char *argv[]){
 
 	char * input_file_name = "./grafo.txt";
 	char * output_file_name = "./output.txt";
 
-	//creation pipe: parent process write, child process read
-	int first_pipe[2]; //kernel_process lavora solo con stdin, stdout (vanno preparati prima di chiamare kernel_process)
+	//kernel_process work onyl with stdin, stdout (prepare them before passing to kernel_process)
+	int first_pipe[2];
 	int second_pipe[2];
 
 	if(pipe(first_pipe)) {
@@ -73,7 +74,9 @@ int main(int argc, char *argv[]){
 //			perror("[kernel]: dup2");
 //			exit(EXIT_FAILURE);
 //		}
+
 		kernel_process(first_pipe[0], second_pipe[1]);
+
 		break;
 
 	default: //first process
@@ -106,8 +109,6 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 	}
 	int fp = fd_out[1];
 
-//	int dup_stdout = dup(STDOUT_FILENO);
-
 //	if(dup2(first_pipe[1], STDOUT_FILENO)==-1) {
 //		perror("[1ettore_grafo]: dup2");
 //		exit(EXIT_FAILURE);
@@ -119,14 +120,12 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 		exit(EXIT_FAILURE);
 	}
 
-	//origin and num_nodes
+
 	unsigned origin_id=0;
 	unsigned num_nodes;
 
 	fscanf(inPtr,"%u", &num_nodes);
-
-	fprintf(stdout,"[lettore_grafo]num_nodes = %u\n", num_nodes);
-
+	//fprintf(stdout,"[lettore_grafo]num_nodes = %u\n", num_nodes);
 
 	write(fp, &num_nodes, sizeof(unsigned));
 	write(fp, &origin_id, sizeof(unsigned));
@@ -150,11 +149,11 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 			int_peer_distance=peer_distance*1000;
 			write(fp, &int_peer_distance, sizeof(unsigned));
 		}
-
 		counter++;
-	} //puts("[1st process]: completed");
+	}
 
-	fprintf(stdout,"[lettore_grafo]finito counter=%u\n", counter);
+	//fprintf(stdout,"[lettore_grafo]finito counter=%u\n", counter);
+	fprintf(stdout, "[lettore_grafo] exit\n");
 
 	if(fclose(inPtr)){
 		perror("[lettore_grafo]: fclose");
@@ -168,21 +167,19 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 
 void kernel_process(int fd_in, int fd_out) {
 
+	struct timespec start, stop;
+	int dowhile_counter=0;
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 	// non usare direttamente le pipe ma usare stdin e stdout
 	unsigned origin_id, num_nodes;
 	read(fd_in, &num_nodes, sizeof(unsigned));
 	read(fd_in, &origin_id, sizeof(unsigned));
 
-	fprintf(stdout, "[kernel_process] num_nodes=%u  \n", num_nodes);
+	//fprintf(stdout, "[kernel_process] num_nodes=%u  \n", num_nodes);
 
-	unsigned distances[num_nodes]; // TODO: malloc (e free corrispondente)
-	Node * previouses[num_nodes]; // TODO: malloc (e free corrispondente)
-	Node * nodes[num_nodes]; // TODO: malloc (e free corrispondente)
-
-	for(unsigned i=0; i<num_nodes; i++) {
-		nodes[i]=NULL;
-		previouses[i]=NULL;
-	}
+	unsigned int * distances = malloc(sizeof(unsigned int)*num_nodes);
+	Node ** previouses = malloc(sizeof(Node *) * num_nodes);
+	Node ** nodes = malloc(sizeof(Node *) * num_nodes);
 
 	unsigned node_id;
 	unsigned int num_adj;
@@ -192,7 +189,6 @@ void kernel_process(int fd_in, int fd_out) {
 		read(fd_in, &node_id, sizeof(unsigned));
 		read(fd_in, &num_adj, sizeof(unsigned int));
 
-		//printf("node_id=%lu, num_adj=%u\n", node_id, num_adj);
 		list_adjacent=(Peer *) calloc(num_adj, sizeof(Peer));
 
 		nodes[node_id]=malloc(sizeof(Node));
@@ -221,7 +217,6 @@ void kernel_process(int fd_in, int fd_out) {
 	previouses[origin->id]=nodes[0];
 
 
-
 	unsigned unvisited=num_nodes;
 	unsigned indice;
 	while(unvisited){
@@ -233,8 +228,6 @@ void kernel_process(int fd_in, int fd_out) {
 			}
 		}
 
-//		fprintf(stdout, "[kernel_process] indice=%u\n", indice);
-
 		if(min_distance==UINT_MAX) break;
 		Peer * visit=nodes[indice]->adjacent;
 		for(unsigned int i=0; i<nodes[indice]->num_adjacents; i++){
@@ -245,10 +238,10 @@ void kernel_process(int fd_in, int fd_out) {
 		}
 		nodes[indice]->visited=1;
 		unvisited--;
+		dowhile_counter++;
 	}
 
-
-	fprintf(stdout, "[kernel_process] finito \n");
+	fprintf(stdout, "[kernel_process] exit \n");
 
 	// send results to the second process:
 	Peer * hold;
@@ -266,6 +259,16 @@ void kernel_process(int fd_in, int fd_out) {
 		write(fd_out, &(previouses[i]->id), sizeof(unsigned));
 	}
 
+	//free associated memory
+	free(distances);
+	free(previouses);
+	free(nodes);
+
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
+	double result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
+	printf("[main] tempo di CPU consumato (microsecondi): "
+			"%lf, numero cicli do-while: %d\n", result, dowhile_counter);
+
 	if(close(fd_out)){
 		perror("[kernel]: close read side of the second pipe");
 		exit(EXIT_FAILURE);
@@ -273,11 +276,7 @@ void kernel_process(int fd_in, int fd_out) {
 }
 
 void ricevi_risultati(char * file_name, int * pipe_param) {
-	// il terzo processo "non sa" nulla dei dati inviati dal primo processo
-	// quindi il kernel process deve passare "tutto" al terzo processo
-	// scrivere anche il numero di nodi; id del nodo di partenza
-	// usare lo stesso formato dell'input, aggiungendo su ogni riga dist e prev_node
-	//puts("[ricevi_risultati]: start");
+
 	if(close(pipe_param[1])){
 		perror("[2nd process]: closing write side of the second pipe");
 		exit(EXIT_FAILURE);
@@ -298,8 +297,6 @@ void ricevi_risultati(char * file_name, int * pipe_param) {
 	unsigned int num_adj;
 	read(STDIN_FILENO, &num_nodes, sizeof(unsigned));
 
-	printf("[ricevi_risultati]num_nodes=%u\n", num_nodes);
-	//printf("%lu\n", num_nodes);
 	for(unsigned i=0; i<num_nodes; i++){
 		read(STDIN_FILENO, &node_id, sizeof(unsigned));
 		read(STDIN_FILENO, &num_adj, sizeof(unsigned int));
@@ -314,7 +311,7 @@ void ricevi_risultati(char * file_name, int * pipe_param) {
 		fprintf(outPtr, "%.2lf %u\n", (double)(distance/1000.0), previous_id);
 	}
 
-	fprintf(stdout,"[ricevi_risultati]finito\n");
+	fprintf(stdout,"[ricevi_risultati] exit\n");
 
 	if(fclose(outPtr)){
 		perror("[ricevi_risultati]: fclose");
