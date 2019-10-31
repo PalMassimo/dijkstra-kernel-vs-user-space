@@ -123,10 +123,11 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 	}
 
 
-	unsigned origin_id=4;
+	unsigned origin_id;
 	unsigned num_nodes;
 
-	fscanf(inPtr,"%u", &num_nodes);
+	fscanf(inPtr,"%u %u", &num_nodes, &origin_id);
+	// TODO: controllare che sia origin_id < n
 	//fprintf(stdout,"[lettore_grafo]num_nodes = %u\n", num_nodes);
 
 	write(fp, &num_nodes, sizeof(unsigned));
@@ -221,6 +222,7 @@ void kernel_process(int fd_in, int fd_out) {
 //		distances[i]=UINT_MAX;
 //	}
 	nodes[origin_id]->distance=0;
+	nodes[origin_id]->prev_node_id = origin_id;
 //	distances[origin_id]=0;
 //	previouses[origin_id]=nodes[origin_id];
 
@@ -249,13 +251,13 @@ void kernel_process(int fd_in, int fd_out) {
 		dowhile_counter++;
 	}
 
-	fprintf(stdout, "[kernel_process] exit \n");
+	fprintf(stdout, "[kernel_process] dijkstra finished \n");
 
 	// send results to the second process:
 	Peer * hold;
 	write(fd_out, &num_nodes, sizeof(unsigned));
 	for(unsigned i=0; i<num_nodes; i++){
-		write(fd_out, &(i), sizeof(unsigned));
+//		write(fd_out, &(i), sizeof(unsigned));
 		write(fd_out, &(nodes[i]->num_adjacents), sizeof(unsigned int));
 		hold=nodes[i]->adjacent;
 		for(unsigned int j=0; j<(nodes[i]->num_adjacents); j++){
@@ -301,14 +303,16 @@ void ricevi_risultati(char * file_name, int * pipe_param) {
 		exit(EXIT_FAILURE);
 	}
 
-	unsigned num_nodes, node_id, previous_id, distance, peer_id, peer_distance;
+	unsigned num_nodes, previous_id, distance, peer_id, peer_distance;
 	unsigned int num_adj;
 	read(STDIN_FILENO, &num_nodes, sizeof(unsigned));
 
+	// TODO: se num_nodes < 0 significa che kernel process ha restituito un errore (e quindi ...)
+
 	for(unsigned i=0; i<num_nodes; i++){
-		read(STDIN_FILENO, &node_id, sizeof(unsigned));
+//		read(STDIN_FILENO, &node_id, sizeof(unsigned));
 		read(STDIN_FILENO, &num_adj, sizeof(unsigned int));
-		fprintf(outPtr, "%u %u ", node_id, num_adj);
+		fprintf(outPtr, "%u %u ", i, num_adj);
 		for(unsigned int i=0; i<num_adj; i++){
 			read(STDIN_FILENO, &peer_distance, sizeof(unsigned));
 			read(STDIN_FILENO, &peer_id, sizeof(unsigned));
