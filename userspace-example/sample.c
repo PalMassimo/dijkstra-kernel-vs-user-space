@@ -121,7 +121,7 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 	}
 
 
-	unsigned origin_id=0;
+	unsigned origin_id=4;
 	unsigned num_nodes;
 
 	fscanf(inPtr,"%u", &num_nodes);
@@ -129,8 +129,6 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 
 	write(fp, &num_nodes, sizeof(unsigned));
 	write(fp, &origin_id, sizeof(unsigned));
-
-	int counter = 0;
 
 	while(!feof(inPtr)){
 		unsigned node_id, peer_id;
@@ -149,7 +147,6 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 			int_peer_distance=peer_distance*1000;
 			write(fp, &int_peer_distance, sizeof(unsigned));
 		}
-		counter++;
 	}
 
 	//fprintf(stdout,"[lettore_grafo]finito counter=%u\n", counter);
@@ -214,7 +211,7 @@ void kernel_process(int fd_in, int fd_out) {
 		distances[i]=UINT_MAX;
 	}
 	distances[origin->id]=0;
-	previouses[origin->id]=nodes[0];
+	previouses[origin->id]=nodes[origin_id];
 
 
 	unsigned unvisited=num_nodes;
@@ -266,8 +263,8 @@ void kernel_process(int fd_in, int fd_out) {
 
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
 	double result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
-	printf("[main] tempo di CPU consumato (microsecondi): "
-			"%lf, numero cicli do-while: %d\n", result, dowhile_counter);
+	printf("[kernel] tempo di CPU consumato: "
+			"%lf ms, numero cicli do-while: %d\n", result, dowhile_counter);
 
 	if(close(fd_out)){
 		perror("[kernel]: close read side of the second pipe");
