@@ -17,12 +17,14 @@ typedef struct peer {
 } Peer;
 
 typedef struct node {
-	unsigned int id;
-	double lon; 			// lasciamo ma non va passato al kernel module
-	double lat; 			// lasciamo ma non va passato al kernel module
-	short visited;
+//	unsigned int id;
+//	double lon; 			// lasciamo ma non va passato al kernel module
+//	double lat; 			// lasciamo ma non va passato al kernel module
+	unsigned int visited;
 	unsigned int num_adjacents;
 	struct peer * adjacent;
+	unsigned int distance;
+	unsigned int prev_node_id;
 } Node;
 
 void lettore_grafo(char * file_name, int * pipe);
@@ -166,7 +168,7 @@ void kernel_process(int fd_in, int fd_out) {
 
 	struct timespec start, stop;
 	int dowhile_counter=0;
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+
 	// non usare direttamente le pipe ma usare stdin e stdout
 	unsigned origin_id, num_nodes;
 	read(fd_in, &num_nodes, sizeof(unsigned));
@@ -174,8 +176,8 @@ void kernel_process(int fd_in, int fd_out) {
 
 	//fprintf(stdout, "[kernel_process] num_nodes=%u  \n", num_nodes);
 
-	unsigned int * distances = malloc(sizeof(unsigned int)*num_nodes);
-	Node ** previouses = malloc(sizeof(Node *) * num_nodes);
+//	unsigned int * distances = malloc(sizeof(unsigned int)*num_nodes);
+//	Node ** previouses = malloc(sizeof(Node *) * num_nodes);
 	Node ** nodes = malloc(sizeof(Node *) * num_nodes);
 
 	unsigned node_id;
@@ -186,19 +188,25 @@ void kernel_process(int fd_in, int fd_out) {
 		read(fd_in, &node_id, sizeof(unsigned));
 		read(fd_in, &num_adj, sizeof(unsigned int));
 
+		// TODO: controllare che ogni sia node_id < num_nodes
+		// TODO: controllare che node_id == i
+
 		list_adjacent=(Peer *) calloc(num_adj, sizeof(Peer));
 
 		nodes[node_id]=malloc(sizeof(Node));
-		nodes[node_id]->id=node_id;
+//		nodes[node_id]->id=node_id;
 		nodes[node_id]->num_adjacents=num_adj;
 		nodes[node_id]->visited=0;
 		nodes[node_id]->adjacent=list_adjacent;
+		nodes[node_id]->distance=UINT_MAX;
+		nodes[node_id]->prev_node_id=-1;
 
 		unsigned peer_id;
 		unsigned peer_distance;
 		for(unsigned int j=0; j<num_adj; j++){
 			read(fd_in, &peer_id, sizeof(unsigned));
 			read(fd_in, &peer_distance, sizeof(unsigned));
+			// TODO: controllare che ogni id sia < num_nodes
 			list_adjacent[j].id=peer_id;
 			list_adjacent[j].distance=peer_distance;
 		}
@@ -206,12 +214,15 @@ void kernel_process(int fd_in, int fd_out) {
 
 	close(fd_in);
 
-	Node * origin=nodes[origin_id];
-	for(unsigned int i=0; i<num_nodes; i++){
-		distances[i]=UINT_MAX;
-	}
-	distances[origin->id]=0;
-	previouses[origin->id]=nodes[origin_id];
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+
+//	Node * origin=nodes[origin_id];
+//	for(unsigned int i=0; i<num_nodes; i++){
+//		distances[i]=UINT_MAX;
+//	}
+	nodes[origin_id]->distance=0;
+//	distances[origin_id]=0;
+//	previouses[origin_id]=nodes[origin_id];
 
 
 	unsigned unvisited=num_nodes;
@@ -219,8 +230,8 @@ void kernel_process(int fd_in, int fd_out) {
 	while(unvisited){
 		unsigned min_distance=UINT_MAX;
 		for(unsigned i=0; i<num_nodes; i++){
-			if(distances[i]<min_distance && nodes[i]->visited!=1){
-				min_distance=distances[i];
+			if(nodes[i]->distance<min_distance && nodes[i]->visited==0){
+				min_distance=nodes[i]->distance;
 				indice=i;
 			}
 		}
@@ -228,9 +239,9 @@ void kernel_process(int fd_in, int fd_out) {
 		if(min_distance==UINT_MAX) break;
 		Peer * visit=nodes[indice]->adjacent;
 		for(unsigned int i=0; i<nodes[indice]->num_adjacents; i++){
-			if(distances[visit->id]>distances[nodes[indice]->id]+visit->distance){
-				distances[visit->id]=distances[nodes[indice]->id]+visit->distance;
-				previouses[visit->id]=nodes[indice];
+			if(nodes[visit->id]->distance > nodes[indice]->distance + visit->distance){
+				nodes[visit->id]->distance = nodes[indice]->distance + visit->distance;
+				nodes[visit->id]->prev_node_id= indice;
 			} visit++;
 		}
 		nodes[indice]->visited=1;
@@ -244,7 +255,7 @@ void kernel_process(int fd_in, int fd_out) {
 	Peer * hold;
 	write(fd_out, &num_nodes, sizeof(unsigned));
 	for(unsigned i=0; i<num_nodes; i++){
-		write(fd_out, &(nodes[i]->id), sizeof(unsigned));
+		write(fd_out, &(i), sizeof(unsigned));
 		write(fd_out, &(nodes[i]->num_adjacents), sizeof(unsigned int));
 		hold=nodes[i]->adjacent;
 		for(unsigned int j=0; j<(nodes[i]->num_adjacents); j++){
@@ -252,13 +263,13 @@ void kernel_process(int fd_in, int fd_out) {
 			write(fd_out, &(hold->id), sizeof(unsigned));
 			hold++;
 		}
-		write(fd_out, &(distances[i]), sizeof(unsigned));
-		write(fd_out, &(previouses[i]->id), sizeof(unsigned));
+		write(fd_out, &(nodes[i]->distance), sizeof(unsigned));
+		write(fd_out, &(nodes[i]->prev_node_id), sizeof(unsigned));
 	}
 
 	//free associated memory
-	free(distances);
-	free(previouses);
+//	free(distances);
+//	free(previouses);
 	free(nodes);
 
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
