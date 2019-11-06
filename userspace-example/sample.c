@@ -32,7 +32,7 @@ int main(int argc, char *argv[]){
 	char * input_file_name = "./grafo.txt";
 	char * output_file_name = "./output.txt";
 
-	//kernel_process work onyl with stdin, stdout (prepare them before passing to kernel_process)
+	//kernel_process work only with stdin, stdout (prepare them before passing to kernel_process)
 	int first_pipe[2];
 	int second_pipe[2];
 
@@ -123,6 +123,7 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 	unsigned int origin_id, num_nodes;
 	int catch_error=1; //default: no error
 	fscanf(inPtr,"%u %u", &num_nodes, &origin_id);
+	//fprintf(stdout, "%d\n", catch_error);
 
 	//catch the error: origin's id>=total nodes
 	if(origin_id>=num_nodes){
@@ -174,11 +175,12 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 void kernel_process(int fd_in, int fd_out) {
 
 	struct timespec start, stop;
-	int catch_error, dowhile_counter=0;
+	int catch_error=1, dowhile_counter=0;
 
 	//catch eventual error
 	read(fd_in, &catch_error, sizeof(int));
-	if(catch_error!=1){
+	//fprintf(stdout, "catch error %d\n", catch_error);
+	if(catch_error==-1){
 		close(fd_in);
 		close(fd_out);
 		exit(EXIT_FAILURE);
@@ -278,6 +280,7 @@ void kernel_process(int fd_in, int fd_out) {
 
 	// send results to the second process:
 	Peer * hold;
+	write(fd_out, &catch_error, sizeof(int));
 	write(fd_out, &num_nodes, sizeof(unsigned));
 	for(unsigned i=0; i<num_nodes; i++){
 		write(fd_out, &(nodes[i]->num_adjacents), sizeof(unsigned int));
@@ -322,6 +325,7 @@ void ricevi_risultati(char * file_name, int * pipe_param) {
 
 	int catch_error=-1;
 	read(STDIN_FILENO, &catch_error, sizeof(int));
+	fprintf(stdout, "catch error %d\n", catch_error);
 	if(catch_error==-1){
 		puts("[ricevi_risultati]: kernel process checked an error");
 		close(STDIN_FILENO);
