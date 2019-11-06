@@ -13,7 +13,20 @@
 #include <linux/device.h>         // Header to support the kernel Driver Model
 #include <linux/kernel.h>         // Contains types, macros, functions for the kernel
 #include <linux/fs.h>             // Header for the Linux file system support
-#include <asm/uaccess.h>          // Required for the copy to user function
+//#include <asm/uaccess.h>          // Required for the copy to user function
+#include <linux/uaccess.h>  /// scrivere per cosa serve
+
+#include <linux/slab.h> ////
+
+// #include<linux/moduleparam.h>
+
+#include <linux/ioctl.h>
+
+// https://embetronicx.com/tutorials/linux/device-drivers/ioctl-tutorial-in-linux/
+
+// https://stackoverflow.com/questions/2264384/how-do-i-use-ioctl-to-manipulate-my-kernel-module
+
+
 #include <linux/mutex.h>	  // Required for the mutex functionality
 #define  DEVICE_NAME "dijkstrasp"    ///< The device will appear at /dev/dijkstrasp using this value
 #define  CLASS_NAME  "dijkstrasp"        ///< The device class -- this is a character device driver
@@ -38,6 +51,17 @@ static int     dev_release(struct inode *, struct file *);
 static ssize_t dev_read(struct file *, char *, size_t, loff_t *);
 static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
 
+static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+
+static unsigned int origin_id;
+static unsigned int num_nodes;
+
+#define WR_ORIGIN_NODE_ID _IOW('a','a',int32_t*)
+#define RD_ORIGIN_NODE_ID _IOR('a','b',int32_t*)
+
+#define WR_NUM_NODES _IOW('a','c',int32_t*)
+#define RD_NUM_NODES _IOR('a','d',int32_t*)
+
 /**
  * Devices are represented as file structure in the kernel. The file_operations structure from
  * /linux/fs.h lists the callback functions that you wish to associated with your file operations
@@ -49,6 +73,7 @@ static struct file_operations fops =
    .read = dev_read,
    .write = dev_write,
    .release = dev_release,
+   .unlocked_ioctl = etx_ioctl,
 };
 
 /** @brief The LKM initialization function
@@ -152,11 +177,64 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
  */
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
 
-   sprintf(message, "%s(%zu letters)", buffer, len);   // appending received string with its length
-   size_of_message = strlen(message);                 // store the length of the stored message
-   printk(KERN_INFO "dijkstrachar: Received %zu characters from the user\n", len);
+	char *kern_buf;
+
+	printk(KERN_INFO "dijkstrachar: len= %lu\n", len);
+
+    /* Allocate memory in kernel */
+    kern_buf = kmalloc (len, GFP_KERNEL);
+    if (!kern_buf)
+      return -ENOMEM;
+
+    /* Transfer data from user to kernel through kernel buffer*/
+    if(copy_from_user(kern_buf,buffer,len))
+    {
+        kfree(kern_buf);
+        return -EFAULT;
+    }
+
+
+
+	num_nodes = *((unsigned int *) kern_buf);
+	buffer += sizeof(unsigned int);
+
+	origin_id = *((unsigned int *) kern_buf);
+	buffer += sizeof(unsigned int);
+
+	kfree(kern_buf);
+
+//   sprintf(message, "%s(%zu letters)", buffer, len);   // appending received string with its length
+//   size_of_message = strlen(message);                 // store the length of the stored message
+//   printk(KERN_INFO "dijkstrachar: Received %zu characters from the user\n", len);
+
+	printk(KERN_INFO "dijkstrachar: num_nodes =%u origin_id=%u\n", num_nodes, origin_id);
+
+
+
    return len;
 }
+
+static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+         switch(cmd) {
+                case WR_ORIGIN_NODE_ID:
+                        copy_from_user(&origin_id ,(int32_t*) arg, sizeof(origin_id));
+                        printk(KERN_INFO "origin_id = %d\n", origin_id);
+                        break;
+                case RD_ORIGIN_NODE_ID:
+                        copy_to_user((int32_t*) arg, &origin_id, sizeof(origin_id));
+                        break;
+                case WR_NUM_NODES:
+                        copy_from_user(&num_nodes ,(int32_t*) arg, sizeof(num_nodes));
+                        printk(KERN_INFO "num_nodes = %d\n", num_nodes);
+                        break;
+                case RD_NUM_NODES:
+                        copy_to_user((int32_t*) arg, &num_nodes, sizeof(num_nodes));
+                        break;
+        }
+        return 0;
+}
+
 
 /** @brief The device release function that is called whenever the device is closed/released by
  *  the userspace program
