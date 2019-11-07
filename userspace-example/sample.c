@@ -9,19 +9,21 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <time.h>
+#include <linux/types.h>
+#include <inttypes.h>
 
 
 typedef struct peer {
-	unsigned int id;
-	unsigned int distance;
+	uint32_t id;
+	uint32_t distance;
 } Peer;
 
 typedef struct node {
-	unsigned int visited;
-	unsigned int num_adjacents;
+	uint32_t visited; // si potrebbe usare uint16_t
+	uint32_t num_adjacents; // si potrebbe usare uint16_t
 	struct peer * adjacent;
-	unsigned int distance;
-	unsigned int prev_node_id;
+	uint32_t distance; // calculated by dijkstra algorithm
+	uint32_t prev_node_id; // calculated by dijkstra algorithm
 } Node;
 
 void lettore_grafo(char * file_name, int * pipe);
@@ -120,42 +122,42 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 		exit(EXIT_FAILURE);
 	}
 
-	unsigned int origin_id, num_nodes;
-	int catch_error=1; //default: no error
+	uint32_t origin_id, num_nodes;
+	int catch_error=0; //default: no error
 	fscanf(inPtr,"%u %u", &num_nodes, &origin_id);
 	//fprintf(stdout, "%d\n", catch_error);
 
 	//catch the error: origin's id>=total nodes
 	if(origin_id>=num_nodes){
-		catch_error=-1;
-		write(fp, &catch_error, sizeof(int));
+//		catch_error=-1;
+//		write(fp, &catch_error, sizeof(int));
 		puts("[lettore_grafo]: il numero dei nodi e' superiore all'id dell'origine ");
-		close(fp);
+//		close(fp);
 		exit(EXIT_FAILURE);
 	}
-	else write(fp, &catch_error, sizeof(int));
+//	else write(fp, &catch_error, sizeof(int));
 
 	//passing the total nodes and the origin's id
-	write(fp, &num_nodes, sizeof(unsigned int));
-	write(fp, &origin_id, sizeof(unsigned int));
+	write(fp, &num_nodes, sizeof(uint32_t));
+	write(fp, &origin_id, sizeof(uint32_t));
 
 	//continue  to read the file text...
 	while(!feof(inPtr)){
-		unsigned node_id, peer_id;
-		unsigned int num_adj;
-		int num_items;
+		uint32_t node_id, peer_id;
+		uint32_t num_adj;
+		uint32_t num_items;
 		double new_lat, new_lon, peer_distance;
-		unsigned int_peer_distance;
+		uint32_t int_peer_distance;
 		num_items=fscanf(inPtr, "%u %lf %lf %u", &node_id, &new_lat, &new_lon, &num_adj);
 		if(num_items==0 || num_items==EOF) break;
-		write(fp, &node_id, sizeof(unsigned));
-		write(fp, &num_adj, sizeof(unsigned));
+		write(fp, &node_id, sizeof(uint32_t));
+		write(fp, &num_adj, sizeof(uint32_t));
 
-		for(unsigned int i=0; i<num_adj; i++){
+		for(uint32_t i=0; i<num_adj; i++){
 			fscanf(inPtr, "%lf %u", &peer_distance, &peer_id);
-			write(fp, &peer_id, sizeof(unsigned));
+			write(fp, &peer_id, sizeof(uint32_t));
 			int_peer_distance=peer_distance*1000;
-			write(fp, &int_peer_distance, sizeof(unsigned));
+			write(fp, &int_peer_distance, sizeof(uint32_t));
 		}
 	}
 
@@ -175,21 +177,21 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 void kernel_process(int fd_in, int fd_out) {
 
 	struct timespec start, stop;
-	int catch_error=1, dowhile_counter=0;
+	int catch_error=0, dowhile_counter=0;
 
-	//catch eventual error
-	read(fd_in, &catch_error, sizeof(int));
-	//fprintf(stdout, "catch error %d\n", catch_error);
-	if(catch_error==-1){
-		close(fd_in);
-		close(fd_out);
-		exit(EXIT_FAILURE);
-	}
+//	//catch eventual error
+//	read(fd_in, &catch_error, sizeof(int));
+//	//fprintf(stdout, "catch error %d\n", catch_error);
+//	if(catch_error==-1){
+//		close(fd_in);
+//		close(fd_out);
+//		exit(EXIT_FAILURE);
+//	}
 
 	// non usare direttamente le pipe ma usare stdin e stdout
-	unsigned int origin_id, num_nodes;
-	read(fd_in, &num_nodes, sizeof(unsigned int));
-	read(fd_in, &origin_id, sizeof(unsigned int));
+	uint32_t origin_id, num_nodes;
+	read(fd_in, &num_nodes, sizeof(uint32_t));
+	read(fd_in, &origin_id, sizeof(uint32_t));
 
 	if(num_nodes<=origin_id){
 		catch_error=-1;
@@ -202,11 +204,11 @@ void kernel_process(int fd_in, int fd_out) {
 
 	Node ** nodes = malloc(sizeof(Node *) * num_nodes);
 	Peer * list_adjacent;
-	unsigned int node_id, num_adj;
+	uint32_t node_id, num_adj;
 
-	for(unsigned i=0; i<num_nodes; i++) {
-		read(fd_in, &node_id, sizeof(unsigned int));
-		read(fd_in, &num_adj, sizeof(unsigned int));
+	for(uint32_t i=0; i<num_nodes; i++) {
+		read(fd_in, &node_id, sizeof(uint32_t));
+		read(fd_in, &num_adj, sizeof(uint32_t));
 
 		//check that node_id<num_nodes and that node_id==i
 		if(node_id!=i || node_id>=num_nodes){
@@ -225,11 +227,11 @@ void kernel_process(int fd_in, int fd_out) {
 		nodes[node_id]->distance=UINT_MAX;
 		nodes[node_id]->prev_node_id=-1;
 
-		unsigned peer_id;
-		unsigned peer_distance;
-		for(unsigned int j=0; j<num_adj; j++){
-			read(fd_in, &peer_id, sizeof(unsigned));
-			read(fd_in, &peer_distance, sizeof(unsigned));
+		uint32_t peer_id;
+		uint32_t peer_distance;
+		for(uint32_t j=0; j<num_adj; j++){
+			read(fd_in, &peer_id, sizeof(uint32_t));
+			read(fd_in, &peer_distance, sizeof(uint32_t));
 
 			if(peer_id>=num_nodes){
 				close(fd_in);
@@ -249,11 +251,11 @@ void kernel_process(int fd_in, int fd_out) {
 	nodes[origin_id]->prev_node_id = origin_id;
 
 
-	unsigned unvisited=num_nodes;
-	unsigned indice;
+	uint32_t unvisited=num_nodes;
+	uint32_t indice;
 	while(unvisited){
-		unsigned min_distance=UINT_MAX;
-		for(unsigned i=0; i<num_nodes; i++){
+		uint32_t min_distance=UINT_MAX;
+		for(uint32_t i=0; i<num_nodes; i++){
 			if(nodes[i]->distance<min_distance && nodes[i]->visited==0){
 				min_distance=nodes[i]->distance;
 				indice=i;
@@ -262,7 +264,7 @@ void kernel_process(int fd_in, int fd_out) {
 
 		if(min_distance==UINT_MAX) break;
 		Peer * visit=nodes[indice]->adjacent;
-		for(unsigned int i=0; i<nodes[indice]->num_adjacents; i++){
+		for(uint32_t i=0; i<nodes[indice]->num_adjacents; i++){
 			if(nodes[visit->id]->distance > nodes[indice]->distance + visit->distance){
 				nodes[visit->id]->distance = nodes[indice]->distance + visit->distance;
 				nodes[visit->id]->prev_node_id = indice;
@@ -281,17 +283,17 @@ void kernel_process(int fd_in, int fd_out) {
 	// send results to the second process:
 	Peer * hold;
 	write(fd_out, &catch_error, sizeof(int));
-	write(fd_out, &num_nodes, sizeof(unsigned));
-	for(unsigned i=0; i<num_nodes; i++){
-		write(fd_out, &(nodes[i]->num_adjacents), sizeof(unsigned int));
+	write(fd_out, &num_nodes, sizeof(uint32_t));
+	for(uint32_t i=0; i<num_nodes; i++){
+		write(fd_out, &(nodes[i]->num_adjacents), sizeof(uint32_t));
 		hold=nodes[i]->adjacent;
-		for(unsigned int j=0; j<(nodes[i]->num_adjacents); j++){
-			write(fd_out, &(hold->distance), sizeof(unsigned));
-			write(fd_out, &(hold->id), sizeof(unsigned));
+		for(uint32_t j=0; j<(nodes[i]->num_adjacents); j++){
+			write(fd_out, &(hold->distance), sizeof(uint32_t));
+			write(fd_out, &(hold->id), sizeof(uint32_t));
 			hold++;
 		}
-		write(fd_out, &(nodes[i]->distance), sizeof(unsigned));
-		write(fd_out, &(nodes[i]->prev_node_id), sizeof(unsigned));
+		write(fd_out, &(nodes[i]->distance), sizeof(uint32_t));
+		write(fd_out, &(nodes[i]->prev_node_id), sizeof(uint32_t));
 	}
 
 	//free associated memory
@@ -323,7 +325,7 @@ void ricevi_risultati(char * file_name, int * pipe_param) {
 		exit(EXIT_FAILURE);
 	}
 
-	int catch_error=-1;
+	int catch_error=0;
 	read(STDIN_FILENO, &catch_error, sizeof(int));
 	fprintf(stdout, "catch error %d\n", catch_error);
 	if(catch_error==-1){
@@ -332,23 +334,23 @@ void ricevi_risultati(char * file_name, int * pipe_param) {
 		exit(EXIT_FAILURE);
 	}
 
-	unsigned int num_nodes, previous_id, distance, peer_id, peer_distance;
-	unsigned int num_adj;
-	read(STDIN_FILENO, &num_nodes, sizeof(unsigned int));
+	uint32_t num_nodes, previous_id, distance, peer_id, peer_distance;
+	uint32_t num_adj;
+	read(STDIN_FILENO, &num_nodes, sizeof(uint32_t));
 
 	// TODO: se num_nodes < 0 significa che kernel process ha restituito un errore (e quindi ...)
 	// Appunto: ma num_nodes è un unsigned int
 
-	for(unsigned i=0; i<num_nodes; i++){
-		read(STDIN_FILENO, &num_adj, sizeof(unsigned int));
+	for(uint32_t i=0; i<num_nodes; i++){
+		read(STDIN_FILENO, &num_adj, sizeof(uint32_t));
 		fprintf(outPtr, "%u %u ", i, num_adj);
 		for(unsigned int i=0; i<num_adj; i++){
-			read(STDIN_FILENO, &peer_distance, sizeof(unsigned));
-			read(STDIN_FILENO, &peer_id, sizeof(unsigned));
+			read(STDIN_FILENO, &peer_distance, sizeof(uint32_t));
+			read(STDIN_FILENO, &peer_id, sizeof(uint32_t));
 			fprintf(outPtr, "%.2lf %u ", (double)(peer_distance/1000.0), peer_id);
 		}
-		read(STDIN_FILENO, &distance, sizeof(unsigned));
-		read(STDIN_FILENO, &previous_id, sizeof(unsigned));
+		read(STDIN_FILENO, &distance, sizeof(uint32_t));
+		read(STDIN_FILENO, &previous_id, sizeof(uint32_t));
 		fprintf(outPtr, "%.2lf %u\n", (double)(distance/1000.0), previous_id);
 	}
 

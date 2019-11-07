@@ -22,12 +22,14 @@
 
 #include <linux/ioctl.h>
 
+#include <linux/mutex.h>	  // Required for the mutex functionality
+
+
 // https://embetronicx.com/tutorials/linux/device-drivers/ioctl-tutorial-in-linux/
 
 // https://stackoverflow.com/questions/2264384/how-do-i-use-ioctl-to-manipulate-my-kernel-module
 
 
-#include <linux/mutex.h>	  // Required for the mutex functionality
 #define  DEVICE_NAME "dijkstrasp"    ///< The device will appear at /dev/dijkstrasp using this value
 #define  CLASS_NAME  "dijkstrasp"        ///< The device class -- this is a character device driver
 
@@ -54,13 +56,17 @@ static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
 static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
 static unsigned int origin_id;
-static unsigned int num_nodes;
+static unsigned int num_nodes = -1;
+static unsigned int current_node_id = -1;
 
 #define WR_ORIGIN_NODE_ID _IOW('a','a',int32_t*)
 #define RD_ORIGIN_NODE_ID _IOR('a','b',int32_t*)
 
 #define WR_NUM_NODES _IOW('a','c',int32_t*)
 #define RD_NUM_NODES _IOR('a','d',int32_t*)
+
+#define SET_CURRENT_NODE_ID _IOR('a','e',int32_t*)
+#define GET_CURRENT_NODE_ID _IOR('a','f',int32_t*)
 
 /**
  * Devices are represented as file structure in the kernel. The file_operations structure from
@@ -178,8 +184,16 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
 
 	char *kern_buf;
+	unsigned int node_id;
+	unsigned int peer_id;
+	unsigned int num_adj;
 
 	printk(KERN_INFO "dijkstrachar: len= %lu\n", len);
+
+	if (current_node_id == -1 || num_nodes == -1 || current_node_id >= num_nodes)
+		return -EINVAL;
+
+	// minimum length: sizeof(
 
     /* Allocate memory in kernel */
     kern_buf = kmalloc (len, GFP_KERNEL);
@@ -193,13 +207,10 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -EFAULT;
     }
 
+    // read from userspace data for node current_node_id
 
 
-	num_nodes = *((unsigned int *) kern_buf);
-	buffer += sizeof(unsigned int);
 
-	origin_id = *((unsigned int *) kern_buf);
-	buffer += sizeof(unsigned int);
 
 	kfree(kern_buf);
 
@@ -207,7 +218,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 //   size_of_message = strlen(message);                 // store the length of the stored message
 //   printk(KERN_INFO "dijkstrachar: Received %zu characters from the user\n", len);
 
-	printk(KERN_INFO "dijkstrachar: num_nodes =%u origin_id=%u\n", num_nodes, origin_id);
+//	printk(KERN_INFO "dijkstrachar: num_nodes =%u origin_id=%u\n", num_nodes, origin_id);
 
 
 
@@ -231,6 +242,12 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
                 case RD_NUM_NODES:
                         copy_to_user((int32_t*) arg, &num_nodes, sizeof(num_nodes));
                         break;
+                case SET_CURRENT_NODE_ID:
+                		copy_from_user(&current_node_id,(int32_t*) arg, sizeof(current_node_id));
+                		break;
+                case GET_CURRENT_NODE_ID:
+                		copy_to_user((int32_t*) arg, &current_node_id, sizeof(current_node_id));
+                		break;
         }
         return 0;
 }
@@ -242,9 +259,10 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  *  @param filep A pointer to a file object (defined in linux/fs.h)
  */
 static int dev_release(struct inode *inodep, struct file *filep){
-   mutex_unlock(&dijkstrachar_mutex);                      // release the mutex (i.e., lock goes up)
-   printk(KERN_INFO "dijkstrachar: Device successfully closed\n");
-   return 0;
+	num_nodes = current_node_id = -1;
+	mutex_unlock(&dijkstrachar_mutex);                      // release the mutex (i.e., lock goes up)
+	printk(KERN_INFO "dijkstrachar: Device successfully closed\n");
+	return 0;
 }
 
 /** @brief A module must use the module_init() module_exit() macros from linux/init.h, which
