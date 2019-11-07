@@ -270,6 +270,12 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     for (i = 0; i < num_adjacents; i++) {
     	n->adjacent[i].id = ((u32 *) kern_buf)[3 + i * 2];
     	n->adjacent[i].distance = ((u32 *) kern_buf)[3 + i * 2 + 1];
+
+    	if (n->adjacent[i].id >= num_nodes) {
+    		printk(KERN_INFO "dijkstrachar: wrong adjacent id= %u\n", n->adjacent[i].id);
+            kfree(kern_buf);
+            return -EFAULT;
+    	}
     }
 
 	kfree(kern_buf);
