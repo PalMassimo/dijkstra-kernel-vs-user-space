@@ -24,11 +24,26 @@
 
 #include <linux/mutex.h>	  // Required for the mutex functionality
 
+// https://kernelnewbies.org/InternalKernelDataTypes
+#include <linux/types.h>
+//#include <inttypes.h>
 
 // https://embetronicx.com/tutorials/linux/device-drivers/ioctl-tutorial-in-linux/
 
 // https://stackoverflow.com/questions/2264384/how-do-i-use-ioctl-to-manipulate-my-kernel-module
 
+typedef struct peer {
+	u32 id;
+	u32 distance;
+} Peer;
+
+typedef struct node {
+	u32 visited; // si potrebbe usare uint16_t
+	u32 num_adjacents; // si potrebbe usare uint16_t
+	Peer * adjacent;
+	u32 distance; // calculated by dijkstra algorithm
+	u32 prev_node_id; // calculated by dijkstra algorithm
+} Node;
 
 #define  DEVICE_NAME "dijkstrasp"    ///< The device will appear at /dev/dijkstrasp using this value
 #define  CLASS_NAME  "dijkstrasp"        ///< The device class -- this is a character device driver
@@ -45,6 +60,8 @@ static int    numberOpens = 0;              ///< Counts the number of times the 
 static struct class*  dijkstracharClass  = NULL; ///< The device-driver class struct pointer
 static struct device* dijkstracharDevice = NULL; ///< The device-driver device struct pointer
 
+static Node * nodes = NULL;
+
 static DEFINE_MUTEX(dijkstrachar_mutex);	    ///< Macro to declare a new mutex
 
 /// The prototype functions for the character driver -- must come before the struct definition
@@ -55,24 +72,29 @@ static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
 
 static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
-static unsigned int origin_id;
-static unsigned int num_nodes = -1;
-static unsigned int current_node_id = -1;
+#define NO_NODE_ID 0xFFFFFFFF
 
-#define WR_ORIGIN_NODE_ID _IOW('a','a',int32_t*)
-#define RD_ORIGIN_NODE_ID _IOR('a','b',int32_t*)
+static __u32 origin_id;
+static __u32 num_nodes = NO_NODE_ID;
+static __u32 current_node_id = NO_NODE_ID;
 
-#define WR_NUM_NODES _IOW('a','c',int32_t*)
-#define RD_NUM_NODES _IOR('a','d',int32_t*)
+#define WR_ORIGIN_NODE_ID _IOW('a','a',__s32*)
+#define RD_ORIGIN_NODE_ID _IOR('a','b',__s32*)
 
-#define SET_CURRENT_NODE_ID _IOR('a','e',int32_t*)
-#define GET_CURRENT_NODE_ID _IOR('a','f',int32_t*)
+#define WR_NUM_NODES _IOW('a','c',__s32*)
+#define RD_NUM_NODES _IOR('a','d',__s32*)
+
+#define SET_CURRENT_NODE_ID _IOR('a','e',__s32*)
+#define GET_CURRENT_NODE_ID _IOR('a','f',__s32*)
+
+
 
 /**
  * Devices are represented as file structure in the kernel. The file_operations structure from
  * /linux/fs.h lists the callback functions that you wish to associated with your file operations
  * using a C99 syntax structure. char devices usually implement open, read, write and release calls
  */
+// https://elixir.bootlin.com/linux/v5.3.8/source/include/linux/fs.h#L1789
 static struct file_operations fops =
 {
    .open = dev_open,
@@ -184,16 +206,25 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
 
 	char *kern_buf;
-	unsigned int node_id;
-	unsigned int peer_id;
-	unsigned int num_adj;
+	u32 node_id;
+	u32 peer_id;
+	u32 num_adjacents;
+	u32 i;
+	Node * n;
 
 	printk(KERN_INFO "dijkstrachar: len= %lu\n", len);
 
-	if (current_node_id == -1 || num_nodes == -1 || current_node_id >= num_nodes)
+	if (current_node_id == NO_NODE_ID || num_nodes == NO_NODE_ID || current_node_id >= num_nodes) {
+		printk(KERN_INFO "dijkstrachar: wrong current_node_id= %u or num_nodes=%u\n", current_node_id, num_nodes);
 		return -EINVAL;
+	}
 
-	// minimum length: sizeof(
+	// expected length: sizeof(u32) * 2 + sizeof(u32) * num_adj
+
+	if (len < sizeof(u32) * 3) { // miminum len
+		printk(KERN_INFO "dijkstrachar: wrong len= %lu\n", len);
+		return -EINVAL;
+	}
 
     /* Allocate memory in kernel */
     kern_buf = kmalloc (len, GFP_KERNEL);
@@ -207,12 +238,43 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -EFAULT;
     }
 
-    // read from userspace data for node current_node_id
+    // read from userspace data for current node
+    node_id = ((u32 *) kern_buf)[0];
+    peer_id = ((u32 *) kern_buf)[1];
+    num_adjacents = ((u32 *) kern_buf)[2];
 
+    if (len < sizeof(u32) * 3 + num_adjacents * 2 * sizeof(u32))
+    {
+    	printk(KERN_INFO "dijkstrachar: wrong len= %lu\n", len);
+        kfree(kern_buf);
+        return -EFAULT;
+    }
 
+    if (node_id >= num_nodes) {
+    	printk(KERN_INFO "dijkstrachar: wrong node_id= %u\n", node_id);
+        kfree(kern_buf);
+        return -EFAULT;
+    }
 
+    // read node data
+
+    n = &nodes[node_id];
+
+    n->num_adjacents = num_adjacents;
+    n->adjacent = num_adjacents > 0 ? kmalloc(sizeof(Peer) * num_adjacents, GFP_KERNEL) : NULL;
+
+    n->distance = 0;
+    n->visited = 0;
+    n->prev_node_id = NO_NODE_ID;
+
+    for (i = 0; i < num_adjacents; i++) {
+    	n->adjacent[i].id = ((u32 *) kern_buf)[3 + i * 2];
+    	n->adjacent[i].distance = ((u32 *) kern_buf)[3 + i * 2 + 1];
+    }
 
 	kfree(kern_buf);
+
+	printk(KERN_INFO "dijkstrachar: completed read of node %u\n", node_id);
 
 //   sprintf(message, "%s(%zu letters)", buffer, len);   // appending received string with its length
 //   size_of_message = strlen(message);                 // store the length of the stored message
@@ -229,24 +291,33 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
          switch(cmd) {
                 case WR_ORIGIN_NODE_ID:
-                        copy_from_user(&origin_id ,(int32_t*) arg, sizeof(origin_id));
+                        copy_from_user(&origin_id ,(__u32*) arg, sizeof(origin_id));
                         printk(KERN_INFO "origin_id = %d\n", origin_id);
                         break;
                 case RD_ORIGIN_NODE_ID:
-                        copy_to_user((int32_t*) arg, &origin_id, sizeof(origin_id));
+                        copy_to_user((__u32*) arg, &origin_id, sizeof(origin_id));
                         break;
                 case WR_NUM_NODES:
-                        copy_from_user(&num_nodes ,(int32_t*) arg, sizeof(num_nodes));
+                		if (nodes != NULL) {
+                			// TODO: check for dijstra in execution
+
+                			kfree(nodes);
+
+                		}
+                        copy_from_user(&num_nodes ,(__u32*) arg, sizeof(num_nodes));
                         printk(KERN_INFO "num_nodes = %d\n", num_nodes);
+
+                        kmalloc(sizeof(Node) * num_nodes, GFP_KERNEL);
+
                         break;
                 case RD_NUM_NODES:
-                        copy_to_user((int32_t*) arg, &num_nodes, sizeof(num_nodes));
+                        copy_to_user((__u32*) arg, &num_nodes, sizeof(num_nodes));
                         break;
                 case SET_CURRENT_NODE_ID:
-                		copy_from_user(&current_node_id,(int32_t*) arg, sizeof(current_node_id));
+                		copy_from_user(&current_node_id,(__u32*) arg, sizeof(current_node_id));
                 		break;
                 case GET_CURRENT_NODE_ID:
-                		copy_to_user((int32_t*) arg, &current_node_id, sizeof(current_node_id));
+                		copy_to_user((__u32*) arg, &current_node_id, sizeof(current_node_id));
                 		break;
         }
         return 0;
@@ -259,7 +330,7 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  *  @param filep A pointer to a file object (defined in linux/fs.h)
  */
 static int dev_release(struct inode *inodep, struct file *filep){
-	num_nodes = current_node_id = -1;
+	num_nodes = current_node_id = NO_NODE_ID;
 	mutex_unlock(&dijkstrachar_mutex);                      // release the mutex (i.e., lock goes up)
 	printk(KERN_INFO "dijkstrachar: Device successfully closed\n");
 	return 0;
