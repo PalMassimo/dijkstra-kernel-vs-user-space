@@ -92,7 +92,20 @@ static __u32 current_node_id = NO_NODE_ID;
 #define SET_CURRENT_NODE_ID _IOR('a','e',__s32*)
 #define GET_CURRENT_NODE_ID _IOR('a','f',__s32*)
 
-
+/*
+ * notes:
+ *
+ *sudo mknod  /dev/dijkstrasp c 1 0 <<---- does not work!
+ *
+ *
+ *
+ * sudo insmod dijkstra.ko
+ * sudo chmod ugo+rwx /dev/dijkstrasp
+ * ../lettore_grafo_lkm/Debug/lettore_grafo_lkm
+ *
+ * sudo rmmod dijkstra
+ *
+ */
 
 /**
  * Devices are represented as file structure in the kernel. The file_operations structure from
@@ -160,10 +173,19 @@ static int __init dijkstrachar_init(void){
  */
 static void __exit dijkstrachar_exit(void){
    mutex_destroy(&dijkstrachar_mutex);                       // destroy the dynamically-allocated mutex
+
+   printk(KERN_INFO "dijkstrachar: exit, before device_destroy\n");
    device_destroy(dijkstracharClass, MKDEV(majorNumber, 0)); // remove the device
+
+   printk(KERN_INFO "dijkstrachar: exit, before class_unregister\n");
    class_unregister(dijkstracharClass);                      // unregister the device class
+
+   printk(KERN_INFO "dijkstrachar: exit, before class_destroy\n");
    class_destroy(dijkstracharClass);                         // remove the device class
+
+   printk(KERN_INFO "dijkstrachar: exit, before unregister_chrdev\n");
    unregister_chrdev(majorNumber, DEVICE_NAME);         // unregister the major number
+
    printk(KERN_INFO "dijkstrachar: Goodbye from the LKM!\n");
 }
 
