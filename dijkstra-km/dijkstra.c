@@ -58,7 +58,12 @@ MODULE_AUTHOR("Marco Tessarotto");    ///< The author -- visible when you use mo
 MODULE_DESCRIPTION("A simple Linux char driver for Dijkstra shortest path algorithm ");  ///< The description -- see modinfo
 MODULE_VERSION("0.1");            ///< A version number to inform users
 
-static int    majorNumber;                  ///< Store the device number -- determined automatically
+#define DIJKSTRA_MAJOR 0   /* dynamic major by default */
+
+dev_t dev;
+struct cdev cdev;
+
+static int    dijkstra_major = DIJKSTRA_MAJOR;      ///< Store the device number -- determined automatically
 static char   message[256] = {0};           ///< Memory for the string that is passed from userspace
 static short  size_of_message;              ///< Used to remember the size of the string stored
 static int    numberOpens = 0;              ///< Counts the number of times the device is opened
@@ -129,23 +134,54 @@ static struct file_operations fops =
 // https://linux-kernel-labs.github.io/master/labs/device_model.html
 //
 
+
+
 /** @brief The LKM initialization function
  *  The static keyword restricts the visibility of the function to within this C file. The __init
  *  macro means that for a built-in driver (not a LKM) the function is only used at initialization
  *  time and that it can be discarded and its memory freed up after that point.
  *  @return returns 0 if successful
  */
-static int __init dijkstrachar_init(void){
-   printk(KERN_INFO "dijkstrachar: Initializing the dijkstrachar LKM\n");
+static int __init dijkstrachar_init(void) {
+
+	int result, i;
+
+	printk(KERN_INFO "dijkstrachar: Initializing the dijkstrachar LKM\n");
+
+	dev = MKDEV(dijkstra_major, 0); // dijkstra_major == 0, so we ask for dynamic value
+
+	/*
+	 * Register your major, and accept a dynamic number.
+	 */
+
+	result = alloc_chrdev_region(&dev /* output is written to dev */, 0 /* fist minor */,
+			0 /* count: total number of contiguos dev numbers */, DEVICE_NAME);
+	dijkstra_major = MAJOR(dev);
+
+	if (result < 0) {
+	      printk(KERN_ALERT "dijkstrachar failed to register a major number\n");
+	      return dijkstra_major;
+	}
+
+	// from scullv
+	cdev_init(&cdev, &fops);
+//	dev->cdev.owner = THIS_MODULE;
+//	dev->cdev.ops = &scullv_fops;
+	result = cdev_add (&cdev, dev, 1);
+	if (result < 0) {
+		printk(KERN_INFO "Cannot add the device to the system\n");
+
+
+	}
 
    // Try to dynamically allocate a major number for the device -- more difficult but worth it
    // dynamic allocation of major number
-   majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
-   if (majorNumber<0){
-      printk(KERN_ALERT "dijkstrachar failed to register a major number\n");
-      return majorNumber;
-   }
-   printk(KERN_INFO "dijkstrachar: registered correctly with major number %d\n", majorNumber);
+//   majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
+//   if (majorNumber<0){
+//      printk(KERN_ALERT "dijkstrachar failed to register a major number\n");
+//      return majorNumber;
+//   }
+   printk(KERN_INFO "dijkstrachar: registered correctly with major number %d\n", dijkstra_major);
 
 //   /*Creating cdev structure*/
 //   cdev_init(&etx_cdev,&fops);
@@ -159,8 +195,8 @@ static int __init dijkstrachar_init(void){
    // Register the device class
    // create device class in sysfs
    dijkstracharClass = class_create(THIS_MODULE, CLASS_NAME);
-   if (IS_ERR(dijkstracharClass)){           // Check for error and clean up if there is
-      unregister_chrdev(majorNumber, DEVICE_NAME);
+   if (IS_ERR(dijkstracharClass)) {           // Check for error and clean up if there is
+      unregister_chrdev(dijkstra_major, DEVICE_NAME);
       printk(KERN_ALERT "Failed to register device class\n");
       return PTR_ERR(dijkstracharClass);     // Correct way to return an error on a pointer
    }
@@ -168,10 +204,10 @@ static int __init dijkstrachar_init(void){
 
    // Register the device driver
    // create device under /dev/
-   dijkstracharDevice = device_create(dijkstracharClass, NULL, MKDEV(majorNumber, 0), NULL, DEVICE_NAME);
-   if (IS_ERR(dijkstracharDevice)){          // Clean up if there is an error
+   dijkstracharDevice = device_create(dijkstracharClass, NULL, /*MKDEV(majorNumber, 0) */ dev, NULL, DEVICE_NAME);
+   if (IS_ERR(dijkstracharDevice)) {          // Clean up if there is an error
       class_destroy(dijkstracharClass);      // Repeated code but the alternative is goto statements
-      unregister_chrdev(majorNumber, DEVICE_NAME);
+      unregister_chrdev(dijkstra_major, DEVICE_NAME);
       printk(KERN_ALERT "Failed to create the device\n");
       return PTR_ERR(dijkstracharDevice);
    }
@@ -188,7 +224,7 @@ static void __exit dijkstrachar_exit(void){
    mutex_destroy(&dijkstrachar_mutex);                       // destroy the dynamically-allocated mutex
 
    printk(KERN_INFO "dijkstrachar: exit, before device_destroy\n");
-   device_destroy(dijkstracharClass, MKDEV(majorNumber, 0)); // remove the device
+   device_destroy(dijkstracharClass, MKDEV(dijkstra_major, 0)); // remove the device
 
    printk(KERN_INFO "dijkstrachar: exit, before class_unregister\n");
    class_unregister(dijkstracharClass);                      // unregister the device class
@@ -197,11 +233,14 @@ static void __exit dijkstrachar_exit(void){
    // kernel warning: refcount_t: underflow; use-after-free.
    class_destroy(dijkstracharClass);                         // remove the device class
 
-//   printk(KERN_INFO "dijkstrachar: exit, before cdev_del\n");
-//   cdev_del(&etx_cdev);
+   printk(KERN_INFO "dijkstrachar: exit, before cdev_del\n");
+   cdev_del(&cdev );
 
    printk(KERN_INFO "dijkstrachar: exit, before unregister_chrdev\n");
-   unregister_chrdev(majorNumber, DEVICE_NAME);         // unregister the major number
+   unregister_chrdev(dijkstra_major, DEVICE_NAME);         // unregister the major number
+
+
+   unregister_chrdev_region(/*MKDEV (scullv_major, 0)*/ dev, /*scullv_devs*/ 0);
 
    printk(KERN_INFO "dijkstrachar: Goodbye from the LKM!\n");
 }
@@ -370,7 +409,7 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
                         nodes = kmalloc(sizeof(Node) * num_nodes, GFP_KERNEL);
 
-                        printk(KERN_INFO "after kmalloc %d bytes\n", sizeof(Node) * num_nodes);
+                        printk(KERN_INFO "after kmalloc %ld bytes\n", sizeof(Node) * num_nodes);
 
 
                         break;
