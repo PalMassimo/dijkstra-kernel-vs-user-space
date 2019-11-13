@@ -126,6 +126,8 @@ static struct file_operations fops =
 
 // https://embetronicx.com/tutorials/linux/device-drivers/cdev-structure-and-file-operations-of-character-drivers/#Example
 
+// https://linux-kernel-labs.github.io/master/labs/device_model.html
+//
 
 /** @brief The LKM initialization function
  *  The static keyword restricts the visibility of the function to within this C file. The __init
