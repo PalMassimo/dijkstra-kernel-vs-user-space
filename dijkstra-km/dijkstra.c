@@ -122,6 +122,8 @@ static struct file_operations fops =
    .unlocked_ioctl = etx_ioctl,
 };
 
+//static struct cdev etx_cdev;
+
 // https://embetronicx.com/tutorials/linux/device-drivers/cdev-structure-and-file-operations-of-character-drivers/#Example
 
 
@@ -142,6 +144,15 @@ static int __init dijkstrachar_init(void){
       return majorNumber;
    }
    printk(KERN_INFO "dijkstrachar: registered correctly with major number %d\n", majorNumber);
+
+//   /*Creating cdev structure*/
+//   cdev_init(&etx_cdev,&fops);
+//
+//   /*Adding character device to the system*/
+//   if((cdev_add(&etx_cdev,dev,1)) < 0){
+//        printk(KERN_INFO "Cannot add the device to the system\n");
+//        goto r_class;
+//    }
 
    // Register the device class
    // create device class in sysfs
@@ -181,7 +192,11 @@ static void __exit dijkstrachar_exit(void){
    class_unregister(dijkstracharClass);                      // unregister the device class
 
    printk(KERN_INFO "dijkstrachar: exit, before class_destroy\n");
+   // kernel warning: refcount_t: underflow; use-after-free.
    class_destroy(dijkstracharClass);                         // remove the device class
+
+//   printk(KERN_INFO "dijkstrachar: exit, before cdev_del\n");
+//   cdev_del(&etx_cdev);
 
    printk(KERN_INFO "dijkstrachar: exit, before unregister_chrdev\n");
    unregister_chrdev(majorNumber, DEVICE_NAME);         // unregister the major number
@@ -243,6 +258,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 	u32 peer_id;
 	u32 num_adjacents;
 	u32 i;
+	u32 calculated_len;
 	Node * n;
 
 	printk(KERN_INFO "dijkstrachar: len= %lu\n", len);
@@ -271,14 +287,18 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -EFAULT;
     }
 
-    // read from userspace data for current node
-    node_id = ((u32 *) kern_buf)[0];
-    peer_id = ((u32 *) kern_buf)[1];
-    num_adjacents = ((u32 *) kern_buf)[2];
+    u32 * buf = (u32 *) kern_buf;
 
-    if (len < sizeof(u32) * 3 + num_adjacents * 2 * sizeof(u32))
+    // read from userspace data for current node
+    node_id = buf[0];
+//    peer_id = buf[1];
+    num_adjacents = buf[1];
+
+    calculated_len = sizeof(u32) * (2 + num_adjacents * 2);
+
+    if (len < calculated_len)
     {
-    	printk(KERN_INFO "dijkstrachar: wrong len= %lu\n", len);
+    	printk(KERN_INFO "dijkstrachar: wrong len= %lu, expected %ly\n", len, calculated_len);
         kfree(kern_buf);
         return -EFAULT;
     }
@@ -301,8 +321,8 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     n->prev_node_id = NO_NODE_ID;
 
     for (i = 0; i < num_adjacents; i++) {
-    	n->adjacent[i].id = ((u32 *) kern_buf)[3 + i * 2];
-    	n->adjacent[i].distance = ((u32 *) kern_buf)[3 + i * 2 + 1];
+    	n->adjacent[i].id = buf[2 + i * 2];
+    	n->adjacent[i].distance = buf[2 + i * 2 + 1];
 
     	if (n->adjacent[i].id >= num_nodes) {
     		printk(KERN_INFO "dijkstrachar: wrong adjacent id= %u\n", n->adjacent[i].id);
@@ -339,14 +359,17 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
                 case WR_NUM_NODES:
                 		if (nodes != NULL) {
                 			// TODO: check for dijstra in execution
-
+                			printk(KERN_INFO "dijkstrachar, etx_ioctl: kfree nodes\n");
                 			kfree(nodes);
 
                 		}
                         copy_from_user(&num_nodes ,(__u32*) arg, sizeof(num_nodes));
                         printk(KERN_INFO "num_nodes = %d\n", num_nodes);
 
-                        kmalloc(sizeof(Node) * num_nodes, GFP_KERNEL);
+                        nodes = kmalloc(sizeof(Node) * num_nodes, GFP_KERNEL);
+
+                        printk(KERN_INFO "after kmalloc %d bytes\n", sizeof(Node) * num_nodes);
+
 
                         break;
                 case RD_NUM_NODES:
@@ -368,7 +391,15 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  *  @param inodep A pointer to an inode object (defined in linux/fs.h)
  *  @param filep A pointer to a file object (defined in linux/fs.h)
  */
-static int dev_release(struct inode *inodep, struct file *filep){
+static int dev_release(struct inode *inodep, struct file *filep) {
+
+	if (nodes != NULL) {
+		// TODO: check for dijstra during execution
+		printk(KERN_INFO "dijkstrachar, dev_release: kfree nodes\n");
+		kfree(nodes);
+
+	}
+
 	num_nodes = current_node_id = NO_NODE_ID;
 	mutex_unlock(&dijkstrachar_mutex);                      // release the mutex (i.e., lock goes up)
 	printk(KERN_INFO "dijkstrachar: Device successfully closed\n");
