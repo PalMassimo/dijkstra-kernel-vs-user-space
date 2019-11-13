@@ -18,7 +18,7 @@
 
 #include <linux/slab.h> ////
 
-// #include<linux/moduleparam.h>
+#include<linux/moduleparam.h>
 
 #include <linux/ioctl.h>
 
@@ -111,62 +111,6 @@ static struct file_operations fops =
 
 // https://embetronicx.com/tutorials/linux/device-drivers/cdev-structure-and-file-operations-of-character-drivers/#Example
 
-dev_t dev = 0;
-static struct class *dev_class;
-static struct cdev etx_cdev;
-
-static int __init etx_driver_init(void)
-{
-        /*Allocating Major number*/
-        if((alloc_chrdev_region(&dev, 0, 1, DEVICE_NAME)) <0){
-                printk(KERN_INFO "Cannot allocate major number\n");
-                return -1;
-        }
-        printk(KERN_INFO "Major = %d Minor = %d \n",MAJOR(dev), MINOR(dev));
-
-        /*Creating cdev structure*/
-        cdev_init(&etx_cdev,&fops);
-
-        /*Adding character device to the system*/
-        if((cdev_add(&etx_cdev,dev,1)) < 0){
-            printk(KERN_INFO "Cannot add the device to the system\n");
-            goto r_class;
-        }
-
-        /*Creating struct class*/
-        if((dev_class = class_create(THIS_MODULE, CLASS_NAME)) == NULL){
-            printk(KERN_INFO "Cannot create the struct class\n");
-            goto r_class;
-        }
-
-        /*Creating device*/
-        if((device_create(dev_class,NULL,dev,NULL,DEVICE_NAME)) == NULL){
-            printk(KERN_INFO "Cannot create the device %s\n", DEVICE_NAME);
-            goto r_device;
-        }
-        printk(KERN_INFO "Device Driver Insert...Done!!!\n");
-
-        mutex_init(&dijkstrachar_mutex);          // Initialize the mutex dynamically
-
-        return 0;
-
-r_device:
-        class_destroy(dev_class);
-r_class:
-        unregister_chrdev_region(dev,1);
-        return -1;
-}
-
-void __exit etx_driver_exit(void)
-{
-	mutex_destroy(&dijkstrachar_mutex);                       // destroy the dynamically-allocated mutex
-	device_destroy(dev_class,dev);
-	class_destroy(dev_class);
-	cdev_del(&etx_cdev);
-	unregister_chrdev_region(dev, 1);
-    printk(KERN_INFO "Device Driver Remove...Done!!!\n");
-}
-
 
 /** @brief The LKM initialization function
  *  The static keyword restricts the visibility of the function to within this C file. The __init
@@ -174,7 +118,7 @@ void __exit etx_driver_exit(void)
  *  time and that it can be discarded and its memory freed up after that point.
  *  @return returns 0 if successful
  */
-static int /*__init*/ dijkstrachar_init(void){
+static int __init dijkstrachar_init(void){
    printk(KERN_INFO "dijkstrachar: Initializing the dijkstrachar LKM\n");
 
    // Try to dynamically allocate a major number for the device -- more difficult but worth it
@@ -214,7 +158,7 @@ static int /*__init*/ dijkstrachar_init(void){
  *  Similar to the initialization function, it is static. The __exit macro notifies that if this
  *  code is used for a built-in driver (not a LKM) that this function is not required.
  */
-static void /*__exit*/ dijkstrachar_exit(void){
+static void __exit dijkstrachar_exit(void){
    mutex_destroy(&dijkstrachar_mutex);                       // destroy the dynamically-allocated mutex
    device_destroy(dijkstracharClass, MKDEV(majorNumber, 0)); // remove the device
    class_unregister(dijkstracharClass);                      // unregister the device class
@@ -416,5 +360,5 @@ static int dev_release(struct inode *inodep, struct file *filep){
 //module_init(dijkstrachar_init);
 //module_exit(dijkstrachar_exit);
 
-module_init(etx_driver_init);
-module_exit(etx_driver_exit);
+module_init(dijkstrachar_init);
+module_exit(dijkstrachar_exit);
