@@ -136,6 +136,7 @@ int main(){
 	}
 
 
+	// we send a "command" to start dijkstra algorithm
 	uint32_t msg = START_DIJKSTRA_THREAD;
 
 	write(fd, &msg, sizeof(msg));

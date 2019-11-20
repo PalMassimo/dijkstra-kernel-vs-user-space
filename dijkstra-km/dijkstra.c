@@ -121,8 +121,6 @@ static void free_nodes(void);
 
 void dijkstra_kernel_thread(void) {
 
-//	int dowhile_counter=0;
-
 	unsigned long long t1, t2;
 
 	u32 unvisited=num_nodes;
@@ -132,6 +130,11 @@ void dijkstra_kernel_thread(void) {
 
 	Peer * visit;
 
+	if (num_nodes == NO_NODE_ID) {
+		printk(KERN_INFO "dijkstra_kernel_thread: nothing to do!\n");
+		return;
+	}
+
 	// https://stackoverflow.com/questions/22579157/kernel-mode-clock-gettime
 	// see linux/timekeeping.h
 	// see https://www.kernel.org/doc/html/latest/core-api/timekeeping.html
@@ -140,7 +143,7 @@ void dijkstra_kernel_thread(void) {
 	// https://vincent.bernat.ch/en/blog/2017-linux-kernel-microbenchmark
 
 	t1 = get_cycles();
-//	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+	//	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 
 	nodes[origin_id].distance=0;
 	nodes[origin_id].prev_node_id = origin_id;
@@ -175,43 +178,9 @@ void dijkstra_kernel_thread(void) {
 
 	printk(KERN_INFO "dijkstra_kernel_thread: total cycles: %llu\n", t2 - t1);
 
-//	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
-
-
-//
-//	double result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
-//	printf("[kernel] tempo di CPU consumato: "
-//			"%lf ms, numero cicli do-while: %d\n", result, dowhile_counter);
-
-
-	// send results to the second process:
-//	Peer * hold;
-//	write(fd_out, &catch_error, sizeof(int));
-//	write(fd_out, &num_nodes, sizeof(uint32_t));
-//	for(uint32_t i=0; i<num_nodes; i++){
-//		write(fd_out, &(nodes[i]->num_adjacents), sizeof(uint32_t));
-//		hold=nodes[i]->adjacent;
-//		for(uint32_t j=0; j<(nodes[i]->num_adjacents); j++){
-//			write(fd_out, &(hold->distance), sizeof(uint32_t));
-//			write(fd_out, &(hold->id), sizeof(uint32_t));
-//			hold++;
-//		}
-//		write(fd_out, &(nodes[i]->distance), sizeof(uint32_t));
-//		write(fd_out, &(nodes[i]->prev_node_id), sizeof(uint32_t));
-//	}
-//
-//	//free associated memory
-//	free(nodes);
-//
-//	if(close(fd_out)){
-//		perror("[kernel]: close read side of the second pipe");
-//		exit(EXIT_FAILURE);
-//	}
 
 //	fprintf(stdout, "[kernel_process] dijkstra finished \n");
 }
-
-
 
 //////////////// END of DIJKSTRA SECTION
 
@@ -588,7 +557,6 @@ static int dev_release(struct inode *inodep, struct file *filep) {
 		free_nodes();
 		kfree(nodes);
 		nodes = NULL;
-		num_nodes = 0;
 		origin_id = 0;
 	}
 
