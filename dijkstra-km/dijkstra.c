@@ -37,6 +37,7 @@
 #include <linux/mm.h> // kvmalloc_node
 
 // https://www.kernel.org/doc/Documentation/scheduler/completion.txt
+// example: https://www.kernel.org/doc/html/v4.11/crypto/api-samples.html
 #include <linux/completion.h> //
 
 
@@ -126,13 +127,13 @@ static void free_nodes(void);
 #define START_DIJKSTRA_THREAD 0xDEADBEEF
 
 // https://www.kernel.org/doc/Documentation/scheduler/completion.txt
-struct completion {
+struct djistra_finish {
 	unsigned int done;
-	wait_queue_head_t wait;
+	struct completion completion;
 };
 
 
-struct completion wait_for_dijkstra_completion;
+struct djistra_finish wait_for_dijkstra_completion;
 
 //////////////// START of DIJKSTRA SECTION
 
@@ -213,6 +214,10 @@ void dijkstra_kernel_thread(void) {
 
 	printk(KERN_INFO "dijkstra_kernel_thread: total cycles: %llu\n", t2 - t1);
 
+
+	if (dijkstra_output_buffer != NULL) {
+		kvfree(dijkstra_output_buffer);
+	}
 	// node id, distance, id of preceding node
 	dijkstra_output_buffer = kvmalloc_node(num_nodes * 3 * sizeof(u32), GFP_KERNEL, NUMA_NODE);
 
@@ -226,7 +231,7 @@ void dijkstra_kernel_thread(void) {
 		*pos++ = nodes[i].prev_node_id;
 	}
 
-	complete(&wait_for_dijkstra_completion);
+//	complete(&comp_struct->wait);
 
 //	fprintf(stdout, "[kernel_process] dijkstra finished \n");
 }
@@ -359,6 +364,9 @@ static int dev_open(struct inode *inodep, struct file *filep) {
    }
    numberOpens++;
    printk(KERN_INFO "dijkstrachar: device has been opened %d time(s)\n", numberOpens);
+
+   init_completion(&wait_for_dijkstra_completion.completion);
+
    return 0;
 }
 
@@ -374,7 +382,7 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
    int error_count = 0;
 
    // https://www.kernel.org/doc/Documentation/scheduler/completion.txt
-   wait_for_completion(&wait_for_dijkstra_completion);
+   wait_for_completion(&wait_for_dijkstra_completion.completion);
 
 
    // copy_to_user has the format ( * to, *from, size) and returns 0 on success
@@ -446,6 +454,8 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
     	for (i = 0; i < 100; i++)
     		dijkstra_kernel_thread();
+
+    	complete(&wait_for_dijkstra_completion.completion);
 
     	return len;
     }
@@ -644,6 +654,8 @@ static int dev_release(struct inode *inodep, struct file *filep) {
 	}
 
 	num_nodes = current_node_id = NO_NODE_ID;
+
+
 
 	mutex_unlock(&dijkstrachar_mutex);                      // release the mutex (i.e., lock goes up)
 
