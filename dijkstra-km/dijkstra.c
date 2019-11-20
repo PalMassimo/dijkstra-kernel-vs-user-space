@@ -397,7 +397,7 @@ static int dev_release(struct inode *inodep, struct file *filep) {
 		// TODO: check for dijstra during execution
 		printk(KERN_INFO "dijkstrachar, dev_release: kfree nodes\n");
 		kfree(nodes);
-
+		nodes = NULL;
 	}
 
 	num_nodes = current_node_id = NO_NODE_ID;
