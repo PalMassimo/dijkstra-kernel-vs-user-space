@@ -24,7 +24,7 @@
 #define WR_NUM_NODES _IOW('a','c',int32_t*)
 #define RD_NUM_NODES _IOR('a','d',int32_t*)
 
-#define BUFFER_LENGTH 256               ///< The buffer length (crude but fine)
+#define BUFFER_LENGTH (256*256)            ///< The buffer length (crude but fine)
 static char receive[BUFFER_LENGTH];     ///< The receive buffer from the LKM
 
 #define START_DIJKSTRA_THREAD 0xDEADBEEF
@@ -43,9 +43,6 @@ int main(){
       perror("Failed to open the device...");
       return errno;
    }
-
-//   close(fd);
-//   return 0;
 
    char * input_file_name = "./grafo.txt";
 
@@ -68,16 +65,9 @@ int main(){
 	//		close(fp);
 		exit(EXIT_FAILURE);
 	}
-	//	else write(fp, &catch_error, sizeof(int));
-
-	//passing the total nodes and the origin's id
-//	write(fd, &num_nodes, sizeof(uint32_t));
-//	write(fp, &origin_id, sizeof(uint32_t));
 
 
-//	num_nodes = 1234;
-//	origin_id = 4321;
-
+	//passing the number of nodes and the id of origin node
 	ioctl(fd, WR_NUM_NODES, (int32_t *) &num_nodes);
 	ioctl(fd, WR_ORIGIN_NODE_ID, (int32_t *) &origin_id);
 
@@ -136,17 +126,30 @@ int main(){
 	}
 
 
+	if(fclose(inPtr)){
+		perror("[lettore_grafo]: fclose");
+		exit(EXIT_FAILURE);
+	}
+
+
 	// we send a "command" to start dijkstra algorithm
 	uint32_t msg = START_DIJKSTRA_THREAD;
 
 	write(fd, &msg, sizeof(msg));
 
+	// now we wait for incoming data
+	sleep(1);
+
+
+//	while ((ret = read(fd, receive, BUFFER_LENGTH)) > 0) {
+//		printf("received data from dev, len=%u\n", ret);
+//
+//		// read node results:
+//	}
+
+
 	puts("[lettore_grafo] exit");
 
-	if(fclose(inPtr)){
-		perror("[lettore_grafo]: fclose");
-		exit(EXIT_FAILURE);
-	}
 
 
 
