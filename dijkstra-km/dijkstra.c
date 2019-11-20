@@ -87,6 +87,7 @@ static ssize_t dev_read(struct file *, char *, size_t, loff_t *);
 static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
 
 static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+static void free_nodes(void);
 
 #define NO_NODE_ID 0xFFFFFFFF
 
@@ -203,7 +204,7 @@ static void __exit myexit(void)
  *  @param inodep A pointer to an inode object (defined in linux/fs.h)
  *  @param filep A pointer to a file object (defined in linux/fs.h)
  */
-static int dev_open(struct inode *inodep, struct file *filep){
+static int dev_open(struct inode *inodep, struct file *filep) {
 
    if(!mutex_trylock(&dijkstrachar_mutex)){                  // Try to acquire the mutex (returns 0 on fail)
 	printk(KERN_ALERT "dijkstrachar: Device in use by another process");
@@ -222,7 +223,7 @@ static int dev_open(struct inode *inodep, struct file *filep){
  *  @param len The length of the b
  *  @param offset The offset if required
  */
-static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
+static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset) {
    int error_count = 0;
    // copy_to_user has the format ( * to, *from, size) and returns 0 on success
    error_count = copy_to_user(buffer, message, size_of_message);
@@ -245,7 +246,7 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
  *  @param len The length of the array of data that is being passed in the const char buffer
  *  @param offset The offset if required
  */
-static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
+static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset) {
 
 	char *kern_buf;
 	u32 node_id;
@@ -297,12 +298,11 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
     printk(KERN_INFO "dijkstrachar: node_id=%u\n", node_id);
 
-    if (node_id >= num_nodes || node_id < 0) {
+    if (node_id >= num_nodes) {
 		printk(KERN_INFO "dijkstrachar: wrong node_id= %u\n", node_id);
 		kfree(kern_buf);
 		return -EINVAL;
     }
-
 
 //    peer_id = buf[1];
     num_adjacents = buf[1];
@@ -320,22 +320,16 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -EFAULT;
     }
 
-    if (node_id >= num_nodes) {
-    	printk(KERN_INFO "dijkstrachar: wrong node_id= %u\n", node_id);
-        kfree(kern_buf);
-        return -EFAULT;
-    }
-
     // read node data
 
-//    n = &nodes[node_id];
-//
-//    n->num_adjacents = num_adjacents;
-//    n->adjacent = num_adjacents > 0 ? kmalloc(sizeof(Peer) * num_adjacents, GFP_KERNEL) : NULL;
-//
-//    n->distance = 0;
-//    n->visited = 0;
-//    n->prev_node_id = NO_NODE_ID;
+    n = &nodes[node_id];
+
+    n->num_adjacents = num_adjacents;
+    n->adjacent = num_adjacents > 0 ? kmalloc(sizeof(Peer) * num_adjacents, GFP_KERNEL) : NULL;
+
+    n->distance = 0;
+    n->visited = 0;
+    n->prev_node_id = NO_NODE_ID;
 //
 //    for (i = 0; i < num_adjacents; i++) {
 //    	n->adjacent[i].id = buf[2 + i * 2];
@@ -363,6 +357,20 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
    return len;
 }
 
+
+static void free_nodes() {
+	u32 i;
+
+	if (nodes == NULL)
+		return;
+
+	for (i = 0; i < num_nodes; i++) {
+		if (nodes[i].adjacent != NULL)
+			kfree(nodes[i].adjacent);
+	}
+
+}
+
 static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
          switch(cmd) {
@@ -386,6 +394,10 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
                         nodes = kmalloc(sizeof(Node) * num_nodes, GFP_KERNEL);
 
                         printk(KERN_INFO "etx_ioctl: after kmalloc %ld bytes\n", sizeof(Node) * num_nodes);
+
+                        printk(KERN_INFO "etx_ioctl: sizeof(Node) = %lu\n", sizeof(Node));
+
+                        memset(nodes, 0, sizeof(Node) * num_nodes);
 
                         break;
                 case RD_NUM_NODES:
@@ -412,8 +424,11 @@ static int dev_release(struct inode *inodep, struct file *filep) {
 	if (nodes != NULL) {
 		// TODO: check for dijstra during execution
 		printk(KERN_INFO "dijkstrachar, dev_release: kfree nodes\n");
+		free_nodes();
 		kfree(nodes);
 		nodes = NULL;
+		num_nodes = 0;
+		origin_id = 0;
 	}
 
 	num_nodes = current_node_id = NO_NODE_ID;
