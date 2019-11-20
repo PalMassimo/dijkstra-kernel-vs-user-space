@@ -259,15 +259,15 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 	printk(KERN_INFO "dijkstrachar dev_write: len= %lu\n", len);
 
 	if (/*current_node_id == NO_NODE_ID ||*/ num_nodes == NO_NODE_ID /*|| current_node_id >= num_nodes*/) {
-		printk(KERN_INFO "dijkstrachar: wrong current_node_id= %u or num_nodes=%u\n", current_node_id, num_nodes);
+		printk(KERN_INFO "dijkstrachar: wrong num_nodes=%u\n", num_nodes);
 		return -EINVAL;
 	}
 
 	// expected length (in bytes) : sizeof(u32) * 2 + sizeof(u32) * num_adj
-	printk(KERN_INFO "dijkstrachar: minimum expected length : %lu\n", sizeof(u32) * 2);
+	printk(KERN_INFO "dijkstrachar: minimum expected length : %lu bytes\n", sizeof(u32) * 2);
 
 	if (len < sizeof(u32) * 2) { // miminum len in bytes
-		printk(KERN_INFO "dijkstrachar: wrong len= %lu\n", len);
+		printk(KERN_INFO "dijkstrachar: wrong len= %lu bytes\n", len);
 		return -EINVAL;
 	}
 
@@ -330,17 +330,19 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     n->distance = 0;
     n->visited = 0;
     n->prev_node_id = NO_NODE_ID;
-//
-//    for (i = 0; i < num_adjacents; i++) {
-//    	n->adjacent[i].id = buf[2 + i * 2];
-//    	n->adjacent[i].distance = buf[2 + i * 2 + 1];
-//
-//    	if (n->adjacent[i].id >= num_nodes) {
-//    		printk(KERN_INFO "dijkstrachar: wrong adjacent id= %u\n", n->adjacent[i].id);
-//            kfree(kern_buf);
-//            return -EFAULT;
-//    	}
-//    }
+
+    for (i = 0; i < num_adjacents; i++) {
+    	n->adjacent[i].id = buf[2 + i * 2];
+    	n->adjacent[i].distance = buf[2 + i * 2 + 1];
+
+    	printk(KERN_INFO "adjacent i=%u - id=%u, distance=%u\n", i, n->adjacent[i].id, n->adjacent[i].distance);
+
+    	if (n->adjacent[i].id >= num_nodes) {
+    		printk(KERN_INFO "dijkstrachar: wrong adjacent id= %u\n", n->adjacent[i].id);
+            kfree(kern_buf);
+            return -EFAULT;
+    	}
+    }
 
 	kfree(kern_buf);
 
