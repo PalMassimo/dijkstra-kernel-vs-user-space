@@ -104,6 +104,8 @@ static __u32 current_node_id = NO_NODE_ID;
 #define SET_CURRENT_NODE_ID _IOR('a','e',__s32*)
 #define GET_CURRENT_NODE_ID _IOR('a','f',__s32*)
 
+#define START_DIJKSTRA_THREAD 0xDEADBEEF
+
 /*
  * notes:
  *
@@ -274,7 +276,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 	Node * n;
 	u32 * buf;
 
-	printk(KERN_INFO "dijkstrachar dev_write: len= %lu\n", len);
+	printk(KERN_INFO "dijkstrachar dev_write: len=%lu bytes\n", len);
 
 	if (/*current_node_id == NO_NODE_ID ||*/ num_nodes == NO_NODE_ID /*|| current_node_id >= num_nodes*/) {
 		printk(KERN_INFO "dijkstrachar: wrong num_nodes=%u\n", num_nodes);
@@ -292,9 +294,17 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     /* Transfer data from user to kernel through kernel buffer*/
     if(copy_from_user(kern_buf,buffer,len)) // kern_buf is destination, buffer is source; length in bytes
     {
-    	printk(KERN_INFO "dijkstrachar: copy_from_user error\n");
+    	printk(KERN_INFO "dijkstrachar: copy_from_user error error\n");
         kfree(kern_buf);
         return -EFAULT;
+    }
+
+    if (len == 4 && *((u32 *) kern_buf) == START_DIJKSTRA_THREAD) {
+    	printk(KERN_INFO "dijkstrachar: START_DIJKSTRA_THREAD\n");
+
+    	start_dijkstra();
+
+    	return len;
     }
 
 
@@ -319,7 +329,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     printk(KERN_INFO "dijkstrachar: node_id=%u\n", node_id);
 
     if (node_id >= num_nodes) {
-		printk(KERN_INFO "dijkstrachar: wrong node_id= %u\n", node_id);
+		printk(KERN_INFO "dijkstrachar: wrong node_id= %u, max valid value is %u\n", node_id, num_nodes-1);
 		kfree(kern_buf);
 		return -EINVAL;
     }
@@ -484,8 +494,6 @@ static int dev_release(struct inode *inodep, struct file *filep) {
  *  listed above)
  */
 //
-//module_init(dijkstrachar_init);
-//module_exit(dijkstrachar_exit);
 
 module_init(myinit)
 module_exit(myexit)
