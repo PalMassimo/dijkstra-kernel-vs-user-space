@@ -36,6 +36,9 @@
 
 #include <linux/mm.h> // kvmalloc_node
 
+// https://www.kernel.org/doc/Documentation/scheduler/completion.txt
+#include <linux/completion.h> //
+
 
 // https://embetronicx.com/tutorials/linux/device-drivers/ioctl-tutorial-in-linux/
 
@@ -122,6 +125,15 @@ static void free_nodes(void);
 
 #define START_DIJKSTRA_THREAD 0xDEADBEEF
 
+// https://www.kernel.org/doc/Documentation/scheduler/completion.txt
+struct completion {
+	unsigned int done;
+	wait_queue_head_t wait;
+};
+
+
+struct completion wait_for_dijkstra_completion;
+
 //////////////// START of DIJKSTRA SECTION
 
 void dijkstra_kernel_thread(void) {
@@ -202,7 +214,7 @@ void dijkstra_kernel_thread(void) {
 		*pos++ = nodes[i].prev_node_id;
 	}
 
-
+	complete(&wait_for_dijkstra_completion);
 
 //	fprintf(stdout, "[kernel_process] dijkstra finished \n");
 }
@@ -348,6 +360,11 @@ static int dev_open(struct inode *inodep, struct file *filep) {
  */
 static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset) {
    int error_count = 0;
+
+   // https://www.kernel.org/doc/Documentation/scheduler/completion.txt
+   wait_for_completion(&wait_for_dijkstra_completion);
+
+
    // copy_to_user has the format ( * to, *from, size) and returns 0 on success
    error_count = copy_to_user(buffer, message, size_of_message);
 
@@ -609,9 +626,17 @@ static int dev_release(struct inode *inodep, struct file *filep) {
 		origin_id = 0;
 	}
 
+	if (dijkstra_output_buffer != NULL) {
+		kvfree(dijkstra_output_buffer);
+		dijkstra_output_buffer = NULL;
+	}
+
 	num_nodes = current_node_id = NO_NODE_ID;
+
 	mutex_unlock(&dijkstrachar_mutex);                      // release the mutex (i.e., lock goes up)
+
 	printk(KERN_INFO "dijkstrachar: device successfully closed\n");
+
 	return 0;
 }
 
