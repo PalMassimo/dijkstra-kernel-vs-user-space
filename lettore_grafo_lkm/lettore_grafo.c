@@ -36,11 +36,14 @@ int main(){
 
    printf("Starting device test code example...\n");
 
-   fd = open("/dev/dijkstrasp", O_RDWR);             // Open the device with read/write access
+   fd = open("/dev/dijkstrasp_dev", O_RDWR);             // Open the device with read/write access
    if (fd < 0){
       perror("Failed to open the device...");
       return errno;
    }
+
+   close(fd);
+   return 0;
 
    char * input_file_name = "./grafo.txt";
 
@@ -110,9 +113,14 @@ int main(){
 //			write(fd, &int_peer_distance, sizeof(uint32_t));
 		}
 
-		if (write(fd, buf, buf_len) == -1) {
-			printf("error while writing node %u to device\n", node_id);
-		}
+		for (int i = 0; i < buf_len; i++)
+			printf("%i ", buf[i]);
+
+		printf("\n");
+
+//		if (write(fd, buf, buf_len) == -1) {
+//			printf("error while writing node %u to device\n", node_id);
+//		}
 
 		free(buf);
 	}
