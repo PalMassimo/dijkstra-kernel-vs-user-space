@@ -92,7 +92,7 @@ int main(){
 
 		if(num_items==0 || num_items==EOF) break;
 
-		int buf_len = 2 + num_items * 2 * sizeof(uint32_t);
+		int buf_len = (2 + num_items * 2) * sizeof(uint32_t);
 		char * buf = malloc(buf_len);
 		int i = 2;
 
@@ -105,11 +105,11 @@ int main(){
 		for(uint32_t i=0; i<num_adjacents; i++){
 			fscanf(inPtr, "%lf %u", &peer_distance, &peer_id);
 
-			buf[i++] = peer_id;
+			buf[2 + i++] = peer_id;
 //			write(fd, &peer_id, sizeof(uint32_t));
 
 			int_peer_distance=peer_distance*1000;
-			buf[i++] = int_peer_distance;
+			buf[2 + i++] = int_peer_distance;
 //			write(fd, &int_peer_distance, sizeof(uint32_t));
 		}
 
@@ -118,9 +118,9 @@ int main(){
 
 		printf("\n");
 
-//		if (write(fd, buf, buf_len) == -1) {
-//			printf("error while writing node %u to device\n", node_id);
-//		}
+		if (write(fd, buf, buf_len) == -1) {
+			printf("error while writing node %u to device\n", node_id);
+		}
 
 		free(buf);
 	}
