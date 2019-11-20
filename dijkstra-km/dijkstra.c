@@ -157,18 +157,32 @@ static void cleanup(int device_created)
 
 }
 
+/** @brief The LKM initialization function
+ *  The static keyword restricts the visibility of the function to within this C file. The __init
+ *  macro means that for a built-in driver (not a LKM) the function is only used at initialization
+ *  time and that it can be discarded and its memory freed up after that point.
+ *  @return returns 0 if successful
+ */
 static int __init myinit(void)
 {
 	int device_created = 0;
 
 	/* cat /proc/devices */
-	if (alloc_chrdev_region(&major, 0, 1, NAME "_proc") < 0)
+	/*
+	 * Register your major, and accept a dynamic number.
+	 */
+	/* output is written to major */
+	if (alloc_chrdev_region(&major, 0, 1, NAME "_proc") < 0) {
+		printk(KERN_ALERT "dijkstrachar: failed to register a major number\n");
 		goto error;
+	}
 
-	printk(KERN_INFO "dijkstrachar: registered correctly with major number %d\n", major);
+	printk(KERN_INFO "dijkstrachar: registered correctly with major number %d\n", MAJOR(major));
 	/* ls /sys/class */
 	if ((myclass = class_create(THIS_MODULE, NAME "_sys")) == NULL)
 		goto error;
+
+	// Register the device driver
 	/* ls /dev/ */
 	if (device_create(myclass, NULL, major, NULL, NAME "_dev") == NULL)
 		goto error;
@@ -189,6 +203,10 @@ error:
 	return -1;
 }
 
+/** @brief The LKM cleanup function
+ *  Similar to the initialization function, it is static. The __exit macro notifies that if this
+ *  code is used for a built-in driver (not a LKM) that this function is not required.
+ */
 static void __exit myexit(void)
 {
 	mutex_destroy(&dijkstrachar_mutex);                       // destroy the dynamically-allocated mutex
