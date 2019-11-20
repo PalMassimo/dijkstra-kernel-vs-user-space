@@ -31,11 +31,15 @@
 #include <linux/kdev_t.h>
 #include <linux/cdev.h>
 
+//#include <linux/timekeeping.h>
+#include <linux/timex.h>
 
 
 // https://embetronicx.com/tutorials/linux/device-drivers/ioctl-tutorial-in-linux/
 
 // https://stackoverflow.com/questions/2264384/how-do-i-use-ioctl-to-manipulate-my-kernel-module
+
+//////////////// START of DIJKSTRA SECTION
 
 typedef struct peer {
 	u32 id;
@@ -49,6 +53,18 @@ typedef struct node {
 	u32 distance; // calculated by dijkstra algorithm
 	u32 prev_node_id; // calculated by dijkstra algorithm
 } Node;
+
+
+#define NO_NODE_ID 0xFFFFFFFF
+
+static __u32 origin_id;
+static __u32 num_nodes = NO_NODE_ID;
+static __u32 current_node_id = NO_NODE_ID;
+
+static Node * nodes = NULL;
+
+//////////////// END of DIJKSTRA SECTION
+
 
 #define NAME "dijkstrasp"
 #define  DEVICE_NAME "dijkstrasp"    ///< The device will appear at /dev/dijkstrasp using this value
@@ -76,7 +92,7 @@ static int    numberOpens = 0;              ///< Counts the number of times the 
 //static struct class*  dijkstracharClass  = NULL; ///< The device-driver class struct pointer
 //static struct device* dijkstracharDevice = NULL; ///< The device-driver device struct pointer
 
-static Node * nodes = NULL;
+
 
 static DEFINE_MUTEX(dijkstrachar_mutex);	    ///< Macro to declare a new mutex
 
@@ -89,11 +105,6 @@ static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
 static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 static void free_nodes(void);
 
-#define NO_NODE_ID 0xFFFFFFFF
-
-static __u32 origin_id;
-static __u32 num_nodes = NO_NODE_ID;
-static __u32 current_node_id = NO_NODE_ID;
 
 #define WR_ORIGIN_NODE_ID _IOW('a','a',__s32*)
 #define RD_ORIGIN_NODE_ID _IOR('a','b',__s32*)
@@ -105,6 +116,104 @@ static __u32 current_node_id = NO_NODE_ID;
 #define GET_CURRENT_NODE_ID _IOR('a','f',__s32*)
 
 #define START_DIJKSTRA_THREAD 0xDEADBEEF
+
+//////////////// START of DIJKSTRA SECTION
+
+void dijkstra_kernel_thread(void) {
+
+//	int dowhile_counter=0;
+
+	unsigned long long t1, t2;
+
+	u32 unvisited=num_nodes;
+	u32 indice;
+	u32 min_distance;
+	u32 i;
+
+	Peer * visit;
+
+	// https://stackoverflow.com/questions/22579157/kernel-mode-clock-gettime
+	// see linux/timekeeping.h
+	// see https://www.kernel.org/doc/html/latest/core-api/timekeeping.html
+
+
+	// https://vincent.bernat.ch/en/blog/2017-linux-kernel-microbenchmark
+
+	t1 = get_cycles();
+//	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+
+	nodes[origin_id].distance=0;
+	nodes[origin_id].prev_node_id = origin_id;
+
+
+	while (unvisited) {
+		min_distance = UINT_MAX;
+
+		for(i=0; i<num_nodes; i++) {
+			if (nodes[i].distance < min_distance && nodes[i].visited == 0) {
+				min_distance = nodes[i].distance;
+				indice = i;
+			}
+		}
+
+		if(min_distance == UINT_MAX) break;
+
+		visit = nodes[indice].adjacent;
+
+		for(i = 0; i < nodes[indice].num_adjacents; i++){
+			if(nodes[visit->id].distance > nodes[indice].distance + visit->distance){
+				nodes[visit->id].distance = nodes[indice].distance + visit->distance;
+				nodes[visit->id].prev_node_id = indice;
+			} visit++;
+		}
+		nodes[indice].visited=1;
+		unvisited--;
+//		dowhile_counter++;
+	}
+
+	t2 = get_cycles();
+
+	printk(KERN_INFO "dijkstra_kernel_thread: total cycles: %llu\n", t2 - t1);
+
+//	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
+
+
+//
+//	double result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
+//	printf("[kernel] tempo di CPU consumato: "
+//			"%lf ms, numero cicli do-while: %d\n", result, dowhile_counter);
+
+
+	// send results to the second process:
+//	Peer * hold;
+//	write(fd_out, &catch_error, sizeof(int));
+//	write(fd_out, &num_nodes, sizeof(uint32_t));
+//	for(uint32_t i=0; i<num_nodes; i++){
+//		write(fd_out, &(nodes[i]->num_adjacents), sizeof(uint32_t));
+//		hold=nodes[i]->adjacent;
+//		for(uint32_t j=0; j<(nodes[i]->num_adjacents); j++){
+//			write(fd_out, &(hold->distance), sizeof(uint32_t));
+//			write(fd_out, &(hold->id), sizeof(uint32_t));
+//			hold++;
+//		}
+//		write(fd_out, &(nodes[i]->distance), sizeof(uint32_t));
+//		write(fd_out, &(nodes[i]->prev_node_id), sizeof(uint32_t));
+//	}
+//
+//	//free associated memory
+//	free(nodes);
+//
+//	if(close(fd_out)){
+//		perror("[kernel]: close read side of the second pipe");
+//		exit(EXIT_FAILURE);
+//	}
+
+//	fprintf(stdout, "[kernel_process] dijkstra finished \n");
+}
+
+
+
+//////////////// END of DIJKSTRA SECTION
 
 /*
  * notes:
@@ -302,7 +411,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     if (len == 4 && *((u32 *) kern_buf) == START_DIJKSTRA_THREAD) {
     	printk(KERN_INFO "dijkstrachar: START_DIJKSTRA_THREAD\n");
 
-    	start_dijkstra();
+    	dijkstra_kernel_thread();
 
     	return len;
     }

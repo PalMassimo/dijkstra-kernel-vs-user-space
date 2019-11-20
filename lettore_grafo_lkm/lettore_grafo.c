@@ -27,6 +27,8 @@
 #define BUFFER_LENGTH 256               ///< The buffer length (crude but fine)
 static char receive[BUFFER_LENGTH];     ///< The receive buffer from the LKM
 
+#define START_DIJKSTRA_THREAD 0xDEADBEEF
+
 int main(){
    int ret, fd;
 //   char stringToSend[BUFFER_LENGTH];
@@ -128,6 +130,10 @@ int main(){
 		if (write(fd, buf, buf_len) == -1) {
 			printf("error while writing node %u to device\n", node_id);
 		}
+
+		uint32_t msg = START_DIJKSTRA_THREAD;
+
+		write(fd, &msg, sizeof(msg));
 
 		free(buf);
 	}
