@@ -131,12 +131,14 @@ int main(){
 			printf("error while writing node %u to device\n", node_id);
 		}
 
-		uint32_t msg = START_DIJKSTRA_THREAD;
-
-		write(fd, &msg, sizeof(msg));
 
 		free(buf);
 	}
+
+
+	uint32_t msg = START_DIJKSTRA_THREAD;
+
+	write(fd, &msg, sizeof(msg));
 
 	puts("[lettore_grafo] exit");
 
