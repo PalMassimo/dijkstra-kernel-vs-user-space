@@ -268,11 +268,11 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
 	char *kern_buf;
 	u32 node_id;
-	u32 peer_id;
 	u32 num_adjacents;
 	u32 i;
 	u32 calculated_len;
 	Node * n;
+	u32 * buf;
 
 	printk(KERN_INFO "dijkstrachar dev_write: len= %lu\n", len);
 
@@ -309,7 +309,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 //    	printk(KERN_INFO "kern_buf[%u] = %u\n", i, kern_buf[i]);
 //    }
 
-    u32 * buf = (u32 *) kern_buf;
+    buf = (u32 *) kern_buf;
 
     // read from userspace data for current node
     node_id = buf[0];
@@ -393,44 +393,64 @@ static void free_nodes() {
 
 static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-         switch(cmd) {
-                case WR_ORIGIN_NODE_ID:
-                        copy_from_user(&origin_id ,(__u32*) arg, sizeof(origin_id));
-                        printk(KERN_INFO "origin_id = %d\n", origin_id);
-                        break;
-                case RD_ORIGIN_NODE_ID:
-                        copy_to_user((__u32*) arg, &origin_id, sizeof(origin_id));
-                        break;
-                case WR_NUM_NODES:
-                		if (nodes != NULL) {
-                			// TODO: check for dijstra in execution
-                			printk(KERN_INFO "dijkstrachar, etx_ioctl: kfree nodes\n");
-                			kfree(nodes);
+	int res;
 
-                		}
-                        copy_from_user(&num_nodes ,(__u32*) arg, sizeof(num_nodes));
-                        printk(KERN_INFO "num_nodes = %d\n", num_nodes);
+	 switch(cmd) {
+			case WR_ORIGIN_NODE_ID:
+					res = copy_from_user(&origin_id ,(__u32*) arg, sizeof(origin_id));
 
-                        nodes = kmalloc(sizeof(Node) * num_nodes, GFP_KERNEL);
+					if (res != 0) printk(KERN_INFO "etx_ioctl: copy_from_user error - WR_ORIGIN_NODE_ID\n");
 
-                        printk(KERN_INFO "etx_ioctl: after kmalloc %ld bytes\n", sizeof(Node) * num_nodes);
+					printk(KERN_INFO "origin_id = %d\n", origin_id);
+					break;
+			case RD_ORIGIN_NODE_ID:
+					res = copy_to_user((__u32*) arg, &origin_id, sizeof(origin_id));
 
-                        printk(KERN_INFO "etx_ioctl: sizeof(Node) = %lu\n", sizeof(Node));
+					if (res != 0) printk(KERN_INFO "etx_ioctl: copy_to_user error - RD_ORIGIN_NODE_ID\n");
 
-                        memset(nodes, 0, sizeof(Node) * num_nodes);
+					break;
+			case WR_NUM_NODES:
+					if (nodes != NULL) {
+						// TODO: check for dijstra in execution
+						printk(KERN_INFO "dijkstrachar, etx_ioctl: kfree nodes\n");
+						kfree(nodes);
 
-                        break;
-                case RD_NUM_NODES:
-                        copy_to_user((__u32*) arg, &num_nodes, sizeof(num_nodes));
-                        break;
-                case SET_CURRENT_NODE_ID:
-                		copy_from_user(&current_node_id,(__u32*) arg, sizeof(current_node_id));
-                		break;
-                case GET_CURRENT_NODE_ID:
-                		copy_to_user((__u32*) arg, &current_node_id, sizeof(current_node_id));
-                		break;
-        }
-        return 0;
+					}
+					res = copy_from_user(&num_nodes ,(__u32*) arg, sizeof(num_nodes));
+
+					if (res != 0) printk(KERN_INFO "etx_ioctl: copy_from_user error - WR_NUM_NODES\n");
+
+					printk(KERN_INFO "num_nodes = %d\n", num_nodes);
+
+					nodes = kmalloc(sizeof(Node) * num_nodes, GFP_KERNEL);
+
+					printk(KERN_INFO "etx_ioctl: after kmalloc %ld bytes\n", sizeof(Node) * num_nodes);
+
+					printk(KERN_INFO "etx_ioctl: sizeof(Node) = %lu\n", sizeof(Node));
+
+					memset(nodes, 0, sizeof(Node) * num_nodes);
+
+					break;
+			case RD_NUM_NODES:
+					res = copy_to_user((__u32*) arg, &num_nodes, sizeof(num_nodes));
+
+					if (res != 0) printk(KERN_INFO "etx_ioctl: copy_to_user error - RD_NUM_NODES\n");
+
+					break;
+			case SET_CURRENT_NODE_ID:
+					res = copy_from_user(&current_node_id,(__u32*) arg, sizeof(current_node_id));
+
+					if (res != 0) printk(KERN_INFO "etx_ioctl: copy_from_user error - SET_CURRENT_NODE_ID\n");
+
+					break;
+			case GET_CURRENT_NODE_ID:
+					res = copy_to_user((__u32*) arg, &current_node_id, sizeof(current_node_id));
+
+					if (res != 0) printk(KERN_INFO "etx_ioctl: copy_to_user error - GET_CURRENT_NODE_ID\n");
+
+					break;
+	}
+	return 0;
 }
 
 
