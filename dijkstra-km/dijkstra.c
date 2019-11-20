@@ -225,11 +225,11 @@ static void __exit myexit(void)
 static int dev_open(struct inode *inodep, struct file *filep) {
 
    if(!mutex_trylock(&dijkstrachar_mutex)){                  // Try to acquire the mutex (returns 0 on fail)
-	printk(KERN_ALERT "dijkstrachar: Device in use by another process");
+	printk(KERN_ALERT "dijkstrachar: device in use by another process");
 	return -EBUSY;
    }
    numberOpens++;
-   printk(KERN_INFO "dijkstrachar: Device has been opened %d time(s)\n", numberOpens);
+   printk(KERN_INFO "dijkstrachar: device has been opened %d time(s)\n", numberOpens);
    return 0;
 }
 
@@ -247,11 +247,11 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
    error_count = copy_to_user(buffer, message, size_of_message);
 
    if (error_count==0){           // success!
-      printk(KERN_INFO "dijkstrachar: Sent %d characters to the user\n", size_of_message);
+      printk(KERN_INFO "dijkstrachar: sent %d characters to the user\n", size_of_message);
       return (size_of_message=0); // clear the position to the start and return 0
    }
    else {
-      printk(KERN_INFO "dijkstrachar: Failed to send %d characters to the user\n", error_count);
+      printk(KERN_INFO "dijkstrachar: failed to send %d characters to the user\n", error_count);
       return -EFAULT;      // Failed -- return a bad address message (i.e. -14)
    }
 }
@@ -281,16 +281,8 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 		return -EINVAL;
 	}
 
-	// expected length (in bytes) : sizeof(u32) * 2 + sizeof(u32) * num_adj
-	printk(KERN_INFO "dijkstrachar: minimum expected length : %lu bytes\n", sizeof(u32) * 2);
-
-	if (len < sizeof(u32) * 2) { // miminum len in bytes
-		printk(KERN_INFO "dijkstrachar: wrong len= %lu bytes\n", len);
-		return -EINVAL;
-	}
-
     /* Allocate memory in kernel */
-    kern_buf = kmalloc (len, GFP_KERNEL);
+    kern_buf = kmalloc(len, GFP_KERNEL);
     // https://www.kernel.org/doc/htmldocs/kernel-hacking/routines-kmalloc.html
     // https://www.kernel.org/doc/htmldocs/kernel-api/API-kmalloc.html
     // kmalloc is the normal method of allocating memory for objects smaller than page size in the kernel
@@ -298,12 +290,22 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
       return -ENOMEM;
 
     /* Transfer data from user to kernel through kernel buffer*/
-    if(copy_from_user(kern_buf,buffer,len))
+    if(copy_from_user(kern_buf,buffer,len)) // kern_buf is destination, buffer is source; length in bytes
     {
     	printk(KERN_INFO "dijkstrachar: copy_from_user error\n");
         kfree(kern_buf);
         return -EFAULT;
     }
+
+
+	// expected length (in bytes) : sizeof(u32) * 2 + sizeof(u32) * num_adj
+	printk(KERN_INFO "dijkstrachar: minimum expected length : %lu bytes\n", sizeof(u32) * 2);
+
+	if (len < sizeof(u32) * 2) { // miminum len in bytes
+		printk(KERN_INFO "dijkstrachar: wrong len= %lu bytes\n", len);
+		kfree(kern_buf);
+		return -EINVAL;
+	}
 
 //    for (i = 0; i < len; i++) {
 //    	printk(KERN_INFO "kern_buf[%u] = %u\n", i, kern_buf[i]);
@@ -401,7 +403,7 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 					if (res != 0) printk(KERN_INFO "etx_ioctl: copy_from_user error - WR_ORIGIN_NODE_ID\n");
 
-					printk(KERN_INFO "origin_id = %d\n", origin_id);
+					printk(KERN_INFO "etx_ioctl: origin_id = %d\n", origin_id);
 					break;
 			case RD_ORIGIN_NODE_ID:
 					res = copy_to_user((__u32*) arg, &origin_id, sizeof(origin_id));
@@ -420,7 +422,7 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 					if (res != 0) printk(KERN_INFO "etx_ioctl: copy_from_user error - WR_NUM_NODES\n");
 
-					printk(KERN_INFO "num_nodes = %d\n", num_nodes);
+					printk(KERN_INFO "etx_ioctl: num_nodes = %d\n", num_nodes);
 
 					nodes = kmalloc(sizeof(Node) * num_nodes, GFP_KERNEL);
 
@@ -473,7 +475,7 @@ static int dev_release(struct inode *inodep, struct file *filep) {
 
 	num_nodes = current_node_id = NO_NODE_ID;
 	mutex_unlock(&dijkstrachar_mutex);                      // release the mutex (i.e., lock goes up)
-	printk(KERN_INFO "dijkstrachar: Device successfully closed\n");
+	printk(KERN_INFO "dijkstrachar: device successfully closed\n");
 	return 0;
 }
 
