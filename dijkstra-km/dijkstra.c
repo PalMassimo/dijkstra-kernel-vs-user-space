@@ -34,6 +34,8 @@
 //#include <linux/timekeeping.h>
 #include <linux/timex.h>
 
+#include <linux/mm.h> // kvmalloc_node
+
 
 // https://embetronicx.com/tutorials/linux/device-drivers/ioctl-tutorial-in-linux/
 
@@ -65,6 +67,7 @@ static Node * nodes = NULL;
 
 //////////////// END of DIJKSTRA SECTION
 
+#define NUMA_NODE 0
 
 #define NAME "dijkstrasp"
 #define  DEVICE_NAME "dijkstrasp"    ///< The device will appear at /dev/dijkstrasp using this value
@@ -177,6 +180,8 @@ void dijkstra_kernel_thread(void) {
 	t2 = get_cycles();
 
 	printk(KERN_INFO "dijkstra_kernel_thread: total cycles: %llu\n", t2 - t1);
+
+	// write results in a buffer
 
 
 //	fprintf(stdout, "[kernel_process] dijkstra finished \n");
@@ -362,7 +367,17 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 	}
 
     /* Allocate memory in kernel */
-    kern_buf = kmalloc(len, GFP_KERNEL);
+    kern_buf = kvmalloc_node(len, GFP_KERNEL, NUMA_NODE);
+    /*
+     * The kmalloc() function returns physically and therefore virtually contiguous memory.
+     * This is a contrast to user space's malloc() function, which returns virtually but not necessarily
+     * physically contiguous memory. Physically contiguous memory has two primary benefits. First,
+     * many hardware devices cannot address virtual memory. Therefore, in order for them to be able to
+     * access a block of memory, the block must exist as a physically contiguous chunk of memory.
+     * Second, a physically contiguous block of memory can use a single large page mapping.
+     * This minimizes the translation lookaside buffer (TLB) overhead of addressing the memory,
+     * as only a single TLB entry is required.
+     */
     // https://www.kernel.org/doc/htmldocs/kernel-hacking/routines-kmalloc.html
     // https://www.kernel.org/doc/htmldocs/kernel-api/API-kmalloc.html
     // kmalloc is the normal method of allocating memory for objects smaller than page size in the kernel
@@ -373,7 +388,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     if(copy_from_user(kern_buf,buffer,len)) // kern_buf is destination, buffer is source; length in bytes
     {
     	printk(KERN_INFO "dijkstrachar: copy_from_user error error\n");
-        kfree(kern_buf);
+        kvfree(kern_buf);
         return -EFAULT;
     }
 
@@ -392,7 +407,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
 	if (len < sizeof(u32) * 2) { // miminum len in bytes
 		printk(KERN_INFO "dijkstrachar: wrong len= %lu bytes\n", len);
-		kfree(kern_buf);
+		kvfree(kern_buf);
 		return -EINVAL;
 	}
 
@@ -409,7 +424,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
     if (node_id >= num_nodes) {
 		printk(KERN_INFO "dijkstrachar: wrong node_id= %u, max valid value is %u\n", node_id, num_nodes-1);
-		kfree(kern_buf);
+		kvfree(kern_buf);
 		return -EINVAL;
     }
 
@@ -425,7 +440,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     if (len < calculated_len)
     {
     	printk(KERN_INFO "dijkstrachar: wrong len= %lu, expected %u\n", len, calculated_len);
-        kfree(kern_buf);
+        kvfree(kern_buf);
         return -EFAULT;
     }
 
@@ -434,7 +449,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     n = &nodes[node_id];
 
     n->num_adjacents = num_adjacents;
-    n->adjacent = num_adjacents > 0 ? kmalloc(sizeof(Peer) * num_adjacents, GFP_KERNEL) : NULL;
+    n->adjacent = num_adjacents > 0 ? kvmalloc_node(sizeof(Peer) * num_adjacents, GFP_KERNEL, NUMA_NODE) : NULL;
 
     n->distance = 0;
     n->visited = 0;
@@ -448,12 +463,12 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
     	if (n->adjacent[i].id >= num_nodes) {
     		printk(KERN_INFO "dijkstrachar: wrong adjacent id= %u\n", n->adjacent[i].id);
-            kfree(kern_buf);
+            kvfree(kern_buf);
             return -EFAULT;
     	}
     }
 
-	kfree(kern_buf);
+	kvfree(kern_buf);
 
 	printk(KERN_INFO "dijkstrachar: completed read of node %u\n", node_id);
 
@@ -477,7 +492,7 @@ static void free_nodes() {
 
 	for (i = 0; i < num_nodes; i++) {
 		if (nodes[i].adjacent != NULL)
-			kfree(nodes[i].adjacent);
+			kvfree(nodes[i].adjacent);
 	}
 
 }
@@ -503,8 +518,10 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			case WR_NUM_NODES:
 					if (nodes != NULL) {
 						// TODO: check for dijstra in execution
-						printk(KERN_INFO "dijkstrachar, etx_ioctl: kfree nodes\n");
-						kfree(nodes);
+						printk(KERN_INFO "dijkstrachar, etx_ioctl: kvfree nodes\n");
+
+						// https://www.kernel.org/doc/html/latest/core-api/mm-api.html#c.kvmalloc_node
+						kvfree(nodes);
 
 					}
 					res = copy_from_user(&num_nodes ,(__u32*) arg, sizeof(num_nodes));
@@ -513,7 +530,14 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 					printk(KERN_INFO "etx_ioctl: num_nodes = %d\n", num_nodes);
 
-					nodes = kmalloc(sizeof(Node) * num_nodes, GFP_KERNEL);
+					// https://www.linuxjournal.com/article/6930
+					// kmalloc() function returns physically and therefore virtually contiguous memory
+					//
+//					nodes = kmalloc(sizeof(Node) * num_nodes, GFP_KERNEL);
+
+					// https://www.kernel.org/doc/html/latest/vm/numa.html
+					// https://www.kernel.org/doc/html/latest/core-api/mm-api.html#c.kvmalloc_node
+					nodes = kvmalloc_node(sizeof(Node) * num_nodes, GFP_KERNEL, NUMA_NODE /* NUMA node*/);
 
 					printk(KERN_INFO "etx_ioctl: after kmalloc %ld bytes\n", sizeof(Node) * num_nodes);
 
@@ -554,9 +578,9 @@ static int dev_release(struct inode *inodep, struct file *filep) {
 
 	if (nodes != NULL) {
 		// TODO: check for dijstra during execution
-		printk(KERN_INFO "dijkstrachar, dev_release: kfree nodes\n");
+		printk(KERN_INFO "dijkstrachar, dev_release: kvfree nodes\n");
 		free_nodes();
-		kfree(nodes);
+		kvfree(nodes);
 		nodes = NULL;
 		origin_id = 0;
 	}
