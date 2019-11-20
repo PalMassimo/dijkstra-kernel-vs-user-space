@@ -255,9 +255,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 	u32 calculated_len;
 	Node * n;
 
-	printk(KERN_INFO "dijkstrachar: len= %lu\n", len);
+	printk(KERN_INFO "dijkstrachar dev_write: len= %lu\n", len);
 
-	if (current_node_id == NO_NODE_ID || num_nodes == NO_NODE_ID || current_node_id >= num_nodes) {
+	if (/*current_node_id == NO_NODE_ID ||*/ num_nodes == NO_NODE_ID /*|| current_node_id >= num_nodes*/) {
 		printk(KERN_INFO "dijkstrachar: wrong current_node_id= %u or num_nodes=%u\n", current_node_id, num_nodes);
 		return -EINVAL;
 	}
@@ -286,12 +286,28 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
         return -EFAULT;
     }
 
+//    for (i = 0; i < len; i++) {
+//    	printk(KERN_INFO "kern_buf[%u] = %u\n", i, kern_buf[i]);
+//    }
+
     u32 * buf = (u32 *) kern_buf;
 
     // read from userspace data for current node
     node_id = buf[0];
+
+    printk(KERN_INFO "dijkstrachar: node_id=%u\n", node_id);
+
+    if (node_id >= num_nodes || node_id < 0) {
+		printk(KERN_INFO "dijkstrachar: wrong node_id= %u\n", node_id);
+		kfree(kern_buf);
+		return -EINVAL;
+    }
+
+
 //    peer_id = buf[1];
     num_adjacents = buf[1];
+
+    printk(KERN_INFO "dijkstrachar: num_adjacents=%u\n", num_adjacents);
 
     calculated_len = sizeof(u32) * (2 + num_adjacents * 2);
 

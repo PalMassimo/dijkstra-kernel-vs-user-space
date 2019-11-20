@@ -42,8 +42,8 @@ int main(){
       return errno;
    }
 
-   close(fd);
-   return 0;
+//   close(fd);
+//   return 0;
 
    char * input_file_name = "./grafo.txt";
 
@@ -56,6 +56,7 @@ int main(){
 
 	fscanf(inPtr,"%u %u", &num_nodes, &origin_id);
 	//fprintf(stdout, "%d\n", catch_error);
+	printf("num_nodes=%u origin_id=%u\n", num_nodes, origin_id);
 
 	//catch the error: origin's id>=total nodes
 	if(origin_id>=num_nodes){
@@ -92,24 +93,30 @@ int main(){
 
 		if(num_items==0 || num_items==EOF) break;
 
-		int buf_len = (2 + num_items * 2) * sizeof(uint32_t);
+		int buf_len = (2 + num_adjacents * 2) * sizeof(uint32_t);
 		char * buf = malloc(buf_len);
 		int i = 2;
 
-		buf[0] = node_id;
-		buf[1] = num_adjacents;
+		printf("buf_len=%u\n",buf_len);
+
+		uint32_t * u32_buf = buf;
+
+		u32_buf[0] = node_id;
+		u32_buf[1] = num_adjacents;
 
 //		write(fd, &node_id, sizeof(uint32_t));
 //		write(fd, &num_adj, sizeof(uint32_t));
 
+		uint32_t pos = 2;
+
 		for(uint32_t i=0; i<num_adjacents; i++){
 			fscanf(inPtr, "%lf %u", &peer_distance, &peer_id);
 
-			buf[2 + i++] = peer_id;
+			u32_buf[pos++] = peer_id;
 //			write(fd, &peer_id, sizeof(uint32_t));
 
 			int_peer_distance=peer_distance*1000;
-			buf[2 + i++] = int_peer_distance;
+			u32_buf[pos++] = int_peer_distance;
 //			write(fd, &int_peer_distance, sizeof(uint32_t));
 		}
 
