@@ -139,6 +139,7 @@ struct completion wait_for_dijkstra_completion;
 void dijkstra_kernel_thread(void) {
 
 	unsigned long long t1, t2;
+	struct timespec start, stop;
 
 	u32 unvisited=num_nodes;
 	u32 indice;
@@ -160,7 +161,18 @@ void dijkstra_kernel_thread(void) {
 
 	// https://vincent.bernat.ch/en/blog/2017-linux-kernel-microbenchmark
 
+	// https://elixir.bootlin.com/linux/latest/source/arch/x86/include/asm/msr.h#L201
+	// works for micro-benchmarking (measures cpu ctcles, not timing)
+	// https://stackoverflow.com/a/19942784/974287
+
 	t1 = get_cycles();
+
+	// void getnstimeofday (struct timespec *tv)
+
+	// https://stackoverflow.com/a/4655754/974287
+	// http://lxr.linux.no/#linux+v2.6.22.14/kernel/time.c#L310
+
+
 	//	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 
 	nodes[origin_id].distance=0;
