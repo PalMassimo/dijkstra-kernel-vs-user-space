@@ -65,6 +65,8 @@ static __u32 current_node_id = NO_NODE_ID;
 
 static Node * nodes = NULL;
 
+static char * dijkstra_output_buffer = NULL;
+
 //////////////// END of DIJKSTRA SECTION
 
 #define NUMA_NODE 0
@@ -94,7 +96,7 @@ static short  size_of_message;              ///< Used to remember the size of th
 static int    numberOpens = 0;              ///< Counts the number of times the device is opened
 //static struct class*  dijkstracharClass  = NULL; ///< The device-driver class struct pointer
 //static struct device* dijkstracharDevice = NULL; ///< The device-driver device struct pointer
-
+static u32 received_bytes;
 
 
 static DEFINE_MUTEX(dijkstrachar_mutex);	    ///< Macro to declare a new mutex
@@ -130,6 +132,7 @@ void dijkstra_kernel_thread(void) {
 	u32 indice;
 	u32 min_distance;
 	u32 i;
+	u32 * pos;
 
 	Peer * visit;
 
@@ -151,37 +154,54 @@ void dijkstra_kernel_thread(void) {
 	nodes[origin_id].distance=0;
 	nodes[origin_id].prev_node_id = origin_id;
 
-
 	while (unvisited) {
+
 		min_distance = UINT_MAX;
 
-		for(i=0; i<num_nodes; i++) {
+		for(i = 0; i < num_nodes; i++) {
 			if (nodes[i].distance < min_distance && nodes[i].visited == 0) {
 				min_distance = nodes[i].distance;
 				indice = i;
 			}
 		}
 
-		if(min_distance == UINT_MAX) break;
+		if(min_distance == UINT_MAX)
+			break;
 
 		visit = nodes[indice].adjacent;
 
-		for(i = 0; i < nodes[indice].num_adjacents; i++){
-			if(nodes[visit->id].distance > nodes[indice].distance + visit->distance){
+		for(i = 0; i < nodes[indice].num_adjacents; i++) {
+
+			if(nodes[visit->id].distance > nodes[indice].distance + visit->distance) {
 				nodes[visit->id].distance = nodes[indice].distance + visit->distance;
 				nodes[visit->id].prev_node_id = indice;
-			} visit++;
+			}
+
+			visit++;
 		}
-		nodes[indice].visited=1;
+
+		nodes[indice].visited = 1;
+
 		unvisited--;
-//		dowhile_counter++;
 	}
 
 	t2 = get_cycles();
 
 	printk(KERN_INFO "dijkstra_kernel_thread: total cycles: %llu\n", t2 - t1);
 
-	// write results in a buffer
+	// node id, distance, id of preceding node
+	dijkstra_output_buffer = kvmalloc_node(num_nodes * 3 * sizeof(u32), GFP_KERNEL, NUMA_NODE);
+
+	pos = (u32 *) dijkstra_output_buffer;
+
+	// write results in a dijkstra_output_buffer
+
+	for (i = 0; i< num_nodes; i++) {
+		*pos++ = i;
+		*pos++ = nodes[i].distance;
+		*pos++ = nodes[i].prev_node_id;
+	}
+
 
 
 //	fprintf(stdout, "[kernel_process] dijkstra finished \n");
@@ -415,6 +435,8 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 //    	printk(KERN_INFO "kern_buf[%u] = %u\n", i, kern_buf[i]);
 //    }
 
+	received_bytes += len;
+
     buf = (u32 *) kern_buf;
 
     // read from userspace data for current node
@@ -544,6 +566,8 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 					printk(KERN_INFO "etx_ioctl: sizeof(Node) = %lu\n", sizeof(Node));
 
 					memset(nodes, 0, sizeof(Node) * num_nodes);
+
+					received_bytes = 0;
 
 					break;
 			case RD_NUM_NODES:
