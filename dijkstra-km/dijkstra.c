@@ -34,6 +34,8 @@
 //#include <linux/timekeeping.h>
 #include <linux/timex.h>
 
+#include <linux/timekeeping.h>
+
 #include <linux/mm.h> // kvmalloc_node
 
 
@@ -125,7 +127,7 @@ static void free_nodes(void);
 void dijkstra_kernel_thread(void) {
 
 	unsigned long long t1, t2;
-	struct timespec start, stop;
+	struct timespec64 start, stop;
 
 	u32 unvisited=num_nodes;
 	u32 indice;
@@ -133,6 +135,8 @@ void dijkstra_kernel_thread(void) {
 	u32 i;
 
 	Peer * visit;
+
+	long long deltat;
 
 	if (num_nodes == NO_NODE_ID) {
 		printk(KERN_INFO "dijkstra_kernel_thread: nothing to do!\n");
@@ -155,6 +159,8 @@ void dijkstra_kernel_thread(void) {
 	// https://elixir.bootlin.com/linux/latest/source/arch/x86/include/asm/msr.h#L201
 	// works for micro-benchmarking (measures cpu ctcles, not timing)
 	// https://stackoverflow.com/a/19942784/974287
+
+	ktime_get_ts64(&start);
 
 	t1 = get_cycles();
 
@@ -197,7 +203,19 @@ void dijkstra_kernel_thread(void) {
 
 	t2 = get_cycles();
 
+	ktime_get_ts64(&stop);
+
 	printk(KERN_INFO "dijkstra_kernel_thread: total cycles: %llu\n", t2 - t1);
+
+	deltat = (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec);
+	printk(KERN_INFO"dijkstra_kernel_thread: total CPU time: %llu nanoseconds\n", deltat);
+
+/*
+struct timespec64 {
+	time64_t	tv_sec;			* seconds *
+	long		tv_nsec;		* nanoseconds *
+};
+ */
 
 	// write results in a buffer
 
@@ -422,7 +440,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     if (len == 4 && *((u32 *) kern_buf) == START_DIJKSTRA_THREAD) {
     	printk(KERN_INFO "dijkstrachar: START_DIJKSTRA_THREAD\n");
 
-    	for (i = 0; i < 100; i++)
+    	for (i = 0; i < 10; i++)
     		dijkstra_kernel_thread();
 
     	return len;

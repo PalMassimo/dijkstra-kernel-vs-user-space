@@ -202,7 +202,7 @@ void kernel_process(int fd_in, int fd_out) {
 	}
 
 
-	Node ** nodes = malloc(sizeof(Node *) * num_nodes);
+	Node * nodes = malloc(sizeof(Node) * num_nodes);
 	Peer * list_adjacent;
 	uint32_t node_id, num_adj;
 
@@ -220,12 +220,12 @@ void kernel_process(int fd_in, int fd_out) {
 
 		list_adjacent=(Peer *) calloc(num_adj, sizeof(Peer));
 
-		nodes[node_id]=malloc(sizeof(Node));
-		nodes[node_id]->num_adjacents=num_adj;
-		nodes[node_id]->visited=0;
-		nodes[node_id]->adjacent=list_adjacent;
-		nodes[node_id]->distance=UINT_MAX;
-		nodes[node_id]->prev_node_id=-1;
+		//nodes[node_id]=malloc(sizeof(Node));
+		nodes[node_id].num_adjacents=num_adj;
+		nodes[node_id].visited=0;
+		nodes[node_id].adjacent=list_adjacent;
+		nodes[node_id].distance=UINT_MAX;
+		nodes[node_id].prev_node_id=-1;
 
 		uint32_t peer_id;
 		uint32_t peer_distance;
@@ -245,10 +245,16 @@ void kernel_process(int fd_in, int fd_out) {
 
 	close(fd_in);
 
+
+	for (uint32_t i=0; i < num_nodes; i++) {
+		nodes[node_id].distance=UINT_MAX;
+		nodes[node_id].prev_node_id=-1;
+	}
+
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 
-	nodes[origin_id]->distance=0;
-	nodes[origin_id]->prev_node_id = origin_id;
+	nodes[origin_id].distance=0;
+	nodes[origin_id].prev_node_id = origin_id;
 
 
 	uint32_t unvisited=num_nodes;
@@ -256,28 +262,28 @@ void kernel_process(int fd_in, int fd_out) {
 	while(unvisited){
 		uint32_t min_distance=UINT_MAX;
 		for(uint32_t i=0; i<num_nodes; i++){
-			if(nodes[i]->distance<min_distance && nodes[i]->visited==0){
-				min_distance=nodes[i]->distance;
+			if(nodes[i].distance < min_distance && nodes[i].visited==0){
+				min_distance=nodes[i].distance;
 				indice=i;
 			}
 		}
 
 		if(min_distance==UINT_MAX) break;
-		Peer * visit=nodes[indice]->adjacent;
-		for(uint32_t i=0; i<nodes[indice]->num_adjacents; i++){
-			if(nodes[visit->id]->distance > nodes[indice]->distance + visit->distance){
-				nodes[visit->id]->distance = nodes[indice]->distance + visit->distance;
-				nodes[visit->id]->prev_node_id = indice;
+		Peer * visit=nodes[indice].adjacent;
+		for(uint32_t i=0; i < nodes[indice].num_adjacents; i++){
+			if(nodes[visit->id].distance > nodes[indice].distance + visit->distance){
+				nodes[visit->id].distance = nodes[indice].distance + visit->distance;
+				nodes[visit->id].prev_node_id = indice;
 			} visit++;
 		}
-		nodes[indice]->visited=1;
+		nodes[indice].visited=1;
 		unvisited--;
 		dowhile_counter++;
 	}
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
-	double result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
+	double result = (stop.tv_sec - start.tv_sec) * 1e9 + (stop.tv_nsec - start.tv_nsec) /*/ 1e3*/;
 	printf("[kernel] tempo di CPU consumato: "
-			"%lf ms, numero cicli do-while: %d\n", result, dowhile_counter);
+			"%lf nanoseconds, numero cicli do-while: %d\n", result, dowhile_counter);
 
 
 	// send results to the second process:
@@ -285,15 +291,15 @@ void kernel_process(int fd_in, int fd_out) {
 	write(fd_out, &catch_error, sizeof(int));
 	write(fd_out, &num_nodes, sizeof(uint32_t));
 	for(uint32_t i=0; i<num_nodes; i++){
-		write(fd_out, &(nodes[i]->num_adjacents), sizeof(uint32_t));
-		hold=nodes[i]->adjacent;
-		for(uint32_t j=0; j<(nodes[i]->num_adjacents); j++){
+		write(fd_out, &(nodes[i].num_adjacents), sizeof(uint32_t));
+		hold=nodes[i].adjacent;
+		for(uint32_t j=0; j<(nodes[i].num_adjacents); j++){
 			write(fd_out, &(hold->distance), sizeof(uint32_t));
 			write(fd_out, &(hold->id), sizeof(uint32_t));
 			hold++;
 		}
-		write(fd_out, &(nodes[i]->distance), sizeof(uint32_t));
-		write(fd_out, &(nodes[i]->prev_node_id), sizeof(uint32_t));
+		write(fd_out, &(nodes[i].distance), sizeof(uint32_t));
+		write(fd_out, &(nodes[i].prev_node_id), sizeof(uint32_t));
 	}
 
 	//free associated memory
