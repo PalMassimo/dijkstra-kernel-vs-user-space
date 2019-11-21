@@ -142,6 +142,7 @@ void dijkstra_kernel_thread(void) {
 	for (i = 0; i< num_nodes; i++) {
 		nodes[i].distance = UINT_MAX;
 		nodes[i].visited = 0;
+		nodes[i].prev_node_id = NO_NODE_ID;
 	}
 
 	// https://stackoverflow.com/questions/22579157/kernel-mode-clock-gettime
@@ -477,9 +478,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     n->num_adjacents = num_adjacents;
     n->adjacent = num_adjacents > 0 ? kvmalloc_node(sizeof(Peer) * num_adjacents, GFP_KERNEL, NUMA_NODE) : NULL;
 
-    n->distance = UINT_MAX;
+    n->distance = UINT_MAX; // to be calculated by dijkstra algorithm
     n->visited = 0;
-    n->prev_node_id = NO_NODE_ID;
+    n->prev_node_id = NO_NODE_ID; // to be calculated by dijkstra algorithm
 
     for (i = 0; i < num_adjacents; i++) {
     	n->adjacent[i].id = buf[2 + i * 2];
