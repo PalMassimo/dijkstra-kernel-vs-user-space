@@ -139,6 +139,11 @@ void dijkstra_kernel_thread(void) {
 		return;
 	}
 
+	for (i = 0; i< num_nodes; i++) {
+		nodes[i].distance = UINT_MAX;
+		nodes[i].visited = 0;
+	}
+
 	// https://stackoverflow.com/questions/22579157/kernel-mode-clock-gettime
 	// see linux/timekeeping.h
 	// see https://www.kernel.org/doc/html/latest/core-api/timekeeping.html
@@ -194,6 +199,15 @@ void dijkstra_kernel_thread(void) {
 	printk(KERN_INFO "dijkstra_kernel_thread: total cycles: %llu\n", t2 - t1);
 
 	// write results in a buffer
+
+	printk(KERN_INFO "dijkstra results (node id, distance (from origin), previous node:\n");
+
+	for (i = 0; i< num_nodes; i++) {
+//		*pos++ = i;
+//		*pos++ = nodes[i].distance;
+//		*pos++ = nodes[i].prev_node_id;
+		printk(KERN_INFO "%u %u %u\n", i, nodes[i].distance, nodes[i].prev_node_id);
+	}
 
 
 //	fprintf(stdout, "[kernel_process] dijkstra finished \n");
@@ -463,7 +477,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     n->num_adjacents = num_adjacents;
     n->adjacent = num_adjacents > 0 ? kvmalloc_node(sizeof(Peer) * num_adjacents, GFP_KERNEL, NUMA_NODE) : NULL;
 
-    n->distance = 0;
+    n->distance = UINT_MAX;
     n->visited = 0;
     n->prev_node_id = NO_NODE_ID;
 
