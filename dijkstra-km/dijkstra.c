@@ -205,10 +205,11 @@ void dijkstra_kernel_thread(void) {
 
 	ktime_get_ts64(&stop);
 
-	printk(KERN_INFO "dijkstra_kernel_thread: total cycles: %llu\n", t2 - t1);
 
 	deltat = (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec);
-	printk(KERN_INFO"dijkstra_kernel_thread: total CPU time: %llu nanoseconds\n", deltat);
+
+	printk(KERN_INFO "dijkstra_kernel_thread: total cycles=%llu  total CPU time: %llu nanoseconds \n", t2 - t1, deltat);
+
 
 /*
 struct timespec64 {
@@ -219,6 +220,9 @@ struct timespec64 {
 
 	// write results in a buffer
 
+#ifdef SHOW_DIJKSTRA_RESULTS
+
+
 	printk(KERN_INFO "dijkstra results (node id, distance (from origin), previous node:\n");
 
 	for (i = 0; i< num_nodes; i++) {
@@ -227,6 +231,8 @@ struct timespec64 {
 //		*pos++ = nodes[i].prev_node_id;
 		printk(KERN_INFO "%u %u %u\n", i, nodes[i].distance, nodes[i].prev_node_id);
 	}
+
+#endif
 
 
 //	fprintf(stdout, "[kernel_process] dijkstra finished \n");

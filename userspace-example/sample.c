@@ -245,7 +245,7 @@ void kernel_process(int fd_in, int fd_out) {
 
 	close(fd_in);
 
-	for (int number_of_repetitions = 0; number_of_repetitions < 20; number_of_repetitions++) {
+	for (int number_of_repetitions = 0; number_of_repetitions < 200; number_of_repetitions++) {
 
 		for (uint32_t i=0; i < num_nodes; i++) {
 			nodes[node_id].visited=0;
@@ -276,7 +276,8 @@ void kernel_process(int fd_in, int fd_out) {
 				if(nodes[visit->id].distance > nodes[indice].distance + visit->distance){
 					nodes[visit->id].distance = nodes[indice].distance + visit->distance;
 					nodes[visit->id].prev_node_id = indice;
-				} visit++;
+				}
+				visit++;
 			}
 			nodes[indice].visited=1;
 			unvisited--;
