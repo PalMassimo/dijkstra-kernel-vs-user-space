@@ -174,8 +174,15 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 	}
 }
 
+
+unsigned long long get_cycles() {
+  asm ("rdtsc");
+}
+
+
 void kernel_process(int fd_in, int fd_out) {
 
+	unsigned long long t1, t2;
 	struct timespec start, stop;
 	int catch_error=0, dowhile_counter=0;
 
@@ -255,6 +262,8 @@ void kernel_process(int fd_in, int fd_out) {
 
 		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 
+		t1 = get_cycles();
+
 		nodes[origin_id].distance=0;
 		nodes[origin_id].prev_node_id = origin_id;
 
@@ -283,10 +292,13 @@ void kernel_process(int fd_in, int fd_out) {
 			unvisited--;
 			dowhile_counter++;
 		}
+
+		t2 = get_cycles();
+
 		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
 		double result = (stop.tv_sec - start.tv_sec) * 1e9 + (stop.tv_nsec - start.tv_nsec) /*/ 1e3*/;
-		printf("[kernel] tempo di CPU consumato: "
-				"%lf nanoseconds, numero cicli do-while: %d\n", result, dowhile_counter);
+		printf("[kernel]  total cycles: %llu , tempo di CPU consumato: "
+				"%lf nanoseconds, numero cicli do-while: %d\n", t2 - t1, result, dowhile_counter);
 
 	}
 
