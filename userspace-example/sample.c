@@ -245,45 +245,49 @@ void kernel_process(int fd_in, int fd_out) {
 
 	close(fd_in);
 
+	for (int number_of_repetitions = 0; number_of_repetitions < 20; number_of_repetitions++) {
 
-	for (uint32_t i=0; i < num_nodes; i++) {
-		nodes[node_id].distance=UINT_MAX;
-		nodes[node_id].prev_node_id=-1;
-	}
+		for (uint32_t i=0; i < num_nodes; i++) {
+			nodes[node_id].visited=0;
+			nodes[node_id].distance=UINT_MAX;
+			nodes[node_id].prev_node_id=-1;
+		}
 
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 
-	nodes[origin_id].distance=0;
-	nodes[origin_id].prev_node_id = origin_id;
+		nodes[origin_id].distance=0;
+		nodes[origin_id].prev_node_id = origin_id;
 
 
-	uint32_t unvisited=num_nodes;
-	uint32_t indice;
-	while(unvisited){
-		uint32_t min_distance=UINT_MAX;
-		for(uint32_t i=0; i<num_nodes; i++){
-			if(nodes[i].distance < min_distance && nodes[i].visited==0){
-				min_distance=nodes[i].distance;
-				indice=i;
+		uint32_t unvisited=num_nodes;
+		uint32_t indice;
+		while(unvisited){
+			uint32_t min_distance=UINT_MAX;
+			for(uint32_t i=0; i<num_nodes; i++){
+				if(nodes[i].distance < min_distance && nodes[i].visited==0){
+					min_distance=nodes[i].distance;
+					indice=i;
+				}
 			}
-		}
 
-		if(min_distance==UINT_MAX) break;
-		Peer * visit=nodes[indice].adjacent;
-		for(uint32_t i=0; i < nodes[indice].num_adjacents; i++){
-			if(nodes[visit->id].distance > nodes[indice].distance + visit->distance){
-				nodes[visit->id].distance = nodes[indice].distance + visit->distance;
-				nodes[visit->id].prev_node_id = indice;
-			} visit++;
+			if(min_distance==UINT_MAX) break;
+			Peer * visit=nodes[indice].adjacent;
+			for(uint32_t i=0; i < nodes[indice].num_adjacents; i++){
+				if(nodes[visit->id].distance > nodes[indice].distance + visit->distance){
+					nodes[visit->id].distance = nodes[indice].distance + visit->distance;
+					nodes[visit->id].prev_node_id = indice;
+				} visit++;
+			}
+			nodes[indice].visited=1;
+			unvisited--;
+			dowhile_counter++;
 		}
-		nodes[indice].visited=1;
-		unvisited--;
-		dowhile_counter++;
+		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
+		double result = (stop.tv_sec - start.tv_sec) * 1e9 + (stop.tv_nsec - start.tv_nsec) /*/ 1e3*/;
+		printf("[kernel] tempo di CPU consumato: "
+				"%lf nanoseconds, numero cicli do-while: %d\n", result, dowhile_counter);
+
 	}
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
-	double result = (stop.tv_sec - start.tv_sec) * 1e9 + (stop.tv_nsec - start.tv_nsec) /*/ 1e3*/;
-	printf("[kernel] tempo di CPU consumato: "
-			"%lf nanoseconds, numero cicli do-while: %d\n", result, dowhile_counter);
 
 
 	// send results to the second process:

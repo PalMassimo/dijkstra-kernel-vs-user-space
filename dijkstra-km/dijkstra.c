@@ -440,7 +440,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     if (len == 4 && *((u32 *) kern_buf) == START_DIJKSTRA_THREAD) {
     	printk(KERN_INFO "dijkstrachar: START_DIJKSTRA_THREAD\n");
 
-    	for (i = 0; i < 10; i++)
+    	for (i = 0; i < 20; i++)
     		dijkstra_kernel_thread();
 
     	return len;
