@@ -255,9 +255,9 @@ void kernel_process(int fd_in, int fd_out) {
 	for (int number_of_repetitions = 0; number_of_repetitions < 20; number_of_repetitions++) {
 
 		for (uint32_t i=0; i < num_nodes; i++) {
-			nodes[node_id].visited=0;
-			nodes[node_id].distance=UINT_MAX;
-			nodes[node_id].prev_node_id=-1;
+			nodes[i].visited=0;
+			nodes[i].distance=UINT_MAX;
+			nodes[i].prev_node_id=-1;
 		}
 
 		clock_gettime(/*CLOCK_PROCESS_CPUTIME_ID*/ CLOCK_MONOTONIC, &start);
@@ -280,6 +280,7 @@ void kernel_process(int fd_in, int fd_out) {
 			}
 
 			if(min_distance==UINT_MAX) break;
+
 			Peer * visit=nodes[indice].adjacent;
 			for(uint32_t i=0; i < nodes[indice].num_adjacents; i++){
 				if(nodes[visit->id].distance > nodes[indice].distance + visit->distance){
