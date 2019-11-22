@@ -147,6 +147,7 @@ int dijkstra_kernel_thread(void *arg);
 
 void call_dijkstra_kernel_thread(void) {
     struct task_struct* thread;
+    int i;
 
 //    thread = kthread_run(dijkstra_kernel_thread, (void*) NULL, "creating thread");
 
@@ -168,6 +169,22 @@ void call_dijkstra_kernel_thread(void) {
 
     kfree(data);
 
+//#define SHOW_DIJKSTRA_RESULTS
+
+#ifdef SHOW_DIJKSTRA_RESULTS
+
+
+		printk(KERN_INFO "dijkstra results (node id, distance (from origin), previous node:\n");
+
+		for (i = num_nodes-10; i< num_nodes; i++) {
+	//		*pos++ = i;
+	//		*pos++ = nodes[i].distance;
+	//		*pos++ = nodes[i].prev_node_id;
+			printk(KERN_INFO "%u %u %u\n", i, nodes[i].distance, nodes[i].prev_node_id);
+		}
+
+#endif
+
 }
 
 
@@ -177,11 +194,11 @@ int dijkstra_kernel_thread(void *arg) {
 	struct timespec64 start, stop;
 
 	u32 unvisited=num_nodes;
-	u32 indice;
+	u32 current_node_id;
 	u32 min_distance;
 	u32 i;
 
-	Peer * visit;
+	Peer * adjacent_node;
 
 	long long deltat;
 	u32 dowhile_counter;
@@ -196,7 +213,7 @@ int dijkstra_kernel_thread(void *arg) {
 
 	for (repetitions = 0; repetitions < data->repetitions; repetitions++) {
 
-
+		// reset graph
 		for (i = 0; i< num_nodes; i++) {
 			nodes[i].distance = UINT_MAX;
 			nodes[i].visited = 0;
@@ -239,24 +256,25 @@ int dijkstra_kernel_thread(void *arg) {
 		while (unvisited) {
 			min_distance = UINT_MAX;
 
-			for(i=0; i<num_nodes; i++) {
+			for(i = 0; i<num_nodes; i++) {
 				if (nodes[i].distance < min_distance && nodes[i].visited == 0) {
 					min_distance = nodes[i].distance;
-					indice = i;
+					current_node_id = i;
 				}
 			}
 
-			if(min_distance == UINT_MAX) break;
+			if (min_distance == UINT_MAX) break;
 
-			visit = nodes[indice].adjacent;
+			adjacent_node = nodes[current_node_id].adjacent;
 
-			for(i = 0; i < nodes[indice].num_adjacents; i++){
-				if(nodes[visit->id].distance > nodes[indice].distance + visit->distance){
-					nodes[visit->id].distance = nodes[indice].distance + visit->distance;
-					nodes[visit->id].prev_node_id = indice;
-				} visit++;
+			for(i = 0; i < nodes[current_node_id].num_adjacents; i++){
+				if(nodes[adjacent_node->id].distance > nodes[current_node_id].distance + adjacent_node->distance){
+					nodes[adjacent_node->id].distance = nodes[current_node_id].distance + adjacent_node->distance;
+					nodes[adjacent_node->id].prev_node_id = current_node_id;
+				}
+				adjacent_node++;
 			}
-			nodes[indice].visited=1;
+			nodes[current_node_id].visited = 1;
 			unvisited--;
 			dowhile_counter++;
 		}
@@ -275,17 +293,15 @@ int dijkstra_kernel_thread(void *arg) {
 
 
 		// write results in a buffer
+		// TODO
 
-#ifdef SHOW_DIJKSTRA_RESULTS
 
+#ifdef WRITE_RESULTS_TO_BUFFER
 
-		printk(KERN_INFO "dijkstra results (node id, distance (from origin), previous node:\n");
-
-		for (i = 0; i< num_nodes; i++) {
+ 		for (i = 0; i< num_nodes; i++) {
 	//		*pos++ = i;
 	//		*pos++ = nodes[i].distance;
 	//		*pos++ = nodes[i].prev_node_id;
-			printk(KERN_INFO "%u %u %u\n", i, nodes[i].distance, nodes[i].prev_node_id);
 		}
 
 #endif

@@ -224,6 +224,9 @@ void kernel_process(int fd_in, int fd_out) {
 	Node * nodes = malloc(sizeof(Node) * num_nodes);
 	Peer * list_adjacent;
 	uint32_t node_id, num_adj;
+	uint32_t i;
+	uint32_t min_distance;
+	Peer * adjacent_node;
 
 	for(uint32_t i=0; i<num_nodes; i++) {
 		read(fd_in, &node_id, sizeof(uint32_t));
@@ -266,6 +269,9 @@ void kernel_process(int fd_in, int fd_out) {
 
 	for (int number_of_repetitions = 0; number_of_repetitions < 20; number_of_repetitions++) {
 
+		uint32_t unvisited=num_nodes;
+		uint32_t current_node_id;
+
 		for (uint32_t i=0; i < num_nodes; i++) {
 			nodes[i].visited=0;
 			nodes[i].distance=UINT_MAX;
@@ -283,28 +289,28 @@ void kernel_process(int fd_in, int fd_out) {
 		nodes[origin_id].prev_node_id = origin_id;
 
 
-		uint32_t unvisited=num_nodes;
-		uint32_t indice;
-		while(unvisited){
-			uint32_t min_distance=UINT_MAX;
-			for(uint32_t i=0; i<num_nodes; i++){
+		while (unvisited){
+			min_distance=UINT_MAX;
+
+			for(i = 0; i<num_nodes; i++){
 				if(nodes[i].distance < min_distance && nodes[i].visited==0){
 					min_distance=nodes[i].distance;
-					indice=i;
+					current_node_id=i;
 				}
 			}
 
-			if(min_distance==UINT_MAX) break;
+			if (min_distance == UINT_MAX) break;
 
-			Peer * visit=nodes[indice].adjacent;
-			for(uint32_t i=0; i < nodes[indice].num_adjacents; i++){
-				if(nodes[visit->id].distance > nodes[indice].distance + visit->distance){
-					nodes[visit->id].distance = nodes[indice].distance + visit->distance;
-					nodes[visit->id].prev_node_id = indice;
+			adjacent_node = nodes[current_node_id].adjacent;
+
+			for(i = 0; i < nodes[current_node_id].num_adjacents; i++){
+				if (nodes[adjacent_node->id].distance > nodes[current_node_id].distance + adjacent_node->distance) {
+					nodes[adjacent_node->id].distance = nodes[current_node_id].distance + adjacent_node->distance;
+					nodes[adjacent_node->id].prev_node_id = current_node_id;
 				}
-				visit++;
+				adjacent_node++;
 			}
-			nodes[indice].visited=1;
+			nodes[current_node_id].visited = 1;
 			unvisited--;
 			dowhile_counter++;
 		}
