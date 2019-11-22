@@ -130,6 +130,7 @@ static void free_nodes(void);
 DECLARE_COMPLETION(comp);
 struct my_data {
     int repetitions;
+    Node * nodes;
     struct completion *comp;
 };
 
@@ -166,6 +167,7 @@ void call_dijkstra_kernel_thread(void) {
 
 	data->comp = &comp;
 	data->repetitions = 20;
+	data->nodes = nodes;
 	thread = kthread_run(dijkstra_kernel_thread, (void*) data, "dijkstra_thread%d", 0);
 
     wait_for_completion(&comp);
@@ -207,7 +209,11 @@ int dijkstra_kernel_thread(void *arg) {
 	u32 dowhile_counter;
 	int repetitions;
 
+	Node * nodes;
+
 	struct my_data *data = (struct my_data*)arg;
+
+	nodes = data->nodes;
 
 	if (num_nodes == NO_NODE_ID) {
 		printk(KERN_INFO "dijkstra_kernel_thread: nothing to do!\n");
