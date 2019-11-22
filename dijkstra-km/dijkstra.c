@@ -38,6 +38,8 @@
 
 #include <linux/mm.h> // kvmalloc_node
 
+#include <linux/kthread.h>
+
 
 
 // https://embetronicx.com/tutorials/linux/device-drivers/ioctl-tutorial-in-linux/
@@ -125,6 +127,12 @@ static void free_nodes(void);
 
 //////////////// START of DIJKSTRA SECTION
 
+DECLARE_COMPLETION(comp);
+struct my_data {
+    int id;
+    struct completion *comp;
+};
+
 #define USE_GET_CYCLE
 
 // x64 architecture only
@@ -135,7 +143,35 @@ static __inline__ unsigned long long myrdtsc(void)
     return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
 }
 
-void dijkstra_kernel_thread(void) {
+int dijkstra_kernel_thread(void *arg);
+
+void call_dijkstra_kernel_thread(void) {
+    struct task_struct* thread;
+
+//    thread = kthread_run(dijkstra_kernel_thread, (void*) NULL, "creating thread");
+
+    // wait for completion
+
+
+    struct my_data *data = kmalloc(sizeof(struct my_data), GFP_KERNEL);
+
+    if (data == NULL) {
+    	printk(KERN_INFO "kmalloc error\n");
+    	return;
+    }
+
+	data->comp = &comp;
+	data->id = 0;
+	thread = kthread_run(dijkstra_kernel_thread, (void*) data, "my_thread%d", 0);
+
+    wait_for_completion(&comp);
+
+    kfree(data);
+
+}
+
+
+int dijkstra_kernel_thread(void *arg) {
 
 	unsigned long long t1=0, t2=0;
 	struct timespec64 start, stop;
@@ -150,9 +186,11 @@ void dijkstra_kernel_thread(void) {
 	long long deltat;
 	u32 dowhile_counter;
 
+	struct my_data *data = (struct my_data*)arg;
+
 	if (num_nodes == NO_NODE_ID) {
 		printk(KERN_INFO "dijkstra_kernel_thread: nothing to do!\n");
-		return;
+		return 0;
 	}
 
 	for (i = 0; i< num_nodes; i++) {
@@ -255,6 +293,10 @@ struct timespec64 {
 
 
 //	fprintf(stdout, "[kernel_process] dijkstra finished \n");
+
+	complete(data->comp);
+
+	return 0;
 }
 
 //////////////// END of DIJKSTRA SECTION
@@ -467,8 +509,8 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     if (len == 4 && *((u32 *) kern_buf) == START_DIJKSTRA_THREAD) {
     	printk(KERN_INFO "dijkstrachar: START_DIJKSTRA_THREAD\n");
 
-    	for (i = 0; i < 20; i++)
-    		dijkstra_kernel_thread();
+    	//for (i = 0; i < 20; i++)
+    	call_dijkstra_kernel_thread();
 
     	return len;
     }
