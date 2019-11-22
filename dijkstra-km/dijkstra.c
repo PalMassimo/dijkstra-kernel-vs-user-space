@@ -135,19 +135,22 @@ struct my_data {
 
 #define USE_GET_CYCLE
 
-// x64 architecture only
-static __inline__ unsigned long long myrdtsc(void)
-{
-    unsigned hi, lo;
-    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
-}
+//#ifdef USE_GET_CYCLE
+//// x64 architecture only
+//static __inline__ unsigned long long myrdtsc(void)
+//{
+//    unsigned hi, lo;
+//    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+//    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+//}
+//
+//#endif
 
 int dijkstra_kernel_thread(void *arg);
 
 void call_dijkstra_kernel_thread(void) {
     struct task_struct* thread;
-    int i;
+//    int i;
 
 //    thread = kthread_run(dijkstra_kernel_thread, (void*) NULL, "creating thread");
 
@@ -238,7 +241,7 @@ int dijkstra_kernel_thread(void *arg) {
 		ktime_get_ts64(&start);
 
 #ifdef USE_GET_CYCLE
-		t1 = myrdtsc(); //get_cycles();
+		t1 = get_cycles(); //get_cycles();
 #endif
 
 		// void getnstimeofday (struct timespec *tv)
@@ -280,7 +283,7 @@ int dijkstra_kernel_thread(void *arg) {
 		}
 
 #ifdef USE_GET_CYCLE
-		t2 = myrdtsc(); //get_cycles();
+		t2 = get_cycles(); //get_cycles();
 #endif
 
 		ktime_get_ts64(&stop);

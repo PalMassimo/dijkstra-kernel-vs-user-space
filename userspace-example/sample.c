@@ -11,7 +11,11 @@
 #include <time.h>
 #include <linux/types.h>
 #include <inttypes.h>
+
+
+#ifdef USE_RDTSC
 #include <x86intrin.h>
+#endif
 
 
 typedef struct peer {
@@ -134,7 +138,7 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 	}
 
 	uint32_t origin_id, num_nodes;
-	int catch_error=0; //default: no error
+	//int catch_error=0; //default: no error
 	fscanf(inPtr,"%u %u", &num_nodes, &origin_id);
 	//fprintf(stdout, "%d\n", catch_error);
 
@@ -187,14 +191,14 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 
 
 
-unsigned long long get_cycles() {
-  asm ("rdtsc");
-}
+//unsigned long long get_cycles() {
+//  asm ("rdtsc");
+//}
 
 
 void kernel_process(int fd_in, int fd_out) {
 
-	unsigned long long t1, t2;
+	unsigned long long t1 = 0, t2 = 0;
 	struct timespec start, stop;
 	int catch_error=0, dowhile_counter=0;
 
@@ -283,7 +287,9 @@ void kernel_process(int fd_in, int fd_out) {
 		clock_gettime(/*CLOCK_PROCESS_CPUTIME_ID*/ CLOCK_MONOTONIC, &start);
 
 		// https://stackoverflow.com/questions/9887839/how-to-count-clock-cycles-with-rdtsc-in-gcc-x86#27257824
+#ifdef USE_RDTSC
 		t1 = __rdtsc();
+#endif
 
 		nodes[origin_id].distance=0;
 		nodes[origin_id].prev_node_id = origin_id;
@@ -315,7 +321,9 @@ void kernel_process(int fd_in, int fd_out) {
 			dowhile_counter++;
 		}
 
+#ifdef USE_RDTSC
 		t2 = __rdtsc();
+#endif
 
 		clock_gettime(/*CLOCK_PROCESS_CPUTIME_ID*/ CLOCK_MONOTONIC, &stop);
 		double result = (stop.tv_sec - start.tv_sec) * 1e9 + (stop.tv_nsec - start.tv_nsec) /*/ 1e3*/;
