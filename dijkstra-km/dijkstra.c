@@ -129,7 +129,7 @@ static void free_nodes(void);
 
 DECLARE_COMPLETION(comp);
 struct my_data {
-    int id;
+    int repetitions;
     struct completion *comp;
 };
 
@@ -161,8 +161,8 @@ void call_dijkstra_kernel_thread(void) {
     }
 
 	data->comp = &comp;
-	data->id = 0;
-	thread = kthread_run(dijkstra_kernel_thread, (void*) data, "my_thread%d", 0);
+	data->repetitions = 20;
+	thread = kthread_run(dijkstra_kernel_thread, (void*) data, "dijkstra_thread%d", 0);
 
     wait_for_completion(&comp);
 
@@ -185,6 +185,7 @@ int dijkstra_kernel_thread(void *arg) {
 
 	long long deltat;
 	u32 dowhile_counter;
+	int repetitions;
 
 	struct my_data *data = (struct my_data*)arg;
 
@@ -193,104 +194,103 @@ int dijkstra_kernel_thread(void *arg) {
 		return 0;
 	}
 
-	for (i = 0; i< num_nodes; i++) {
-		nodes[i].distance = UINT_MAX;
-		nodes[i].visited = 0;
-		nodes[i].prev_node_id = NO_NODE_ID;
-	}
-
-	dowhile_counter = 0;
-
-	// https://stackoverflow.com/questions/22579157/kernel-mode-clock-gettime
-	// see linux/timekeeping.h
-	// see https://www.kernel.org/doc/html/latest/core-api/timekeeping.html
+	for (repetitions = 0; repetitions < data->repetitions; repetitions++) {
 
 
-	// https://vincent.bernat.ch/en/blog/2017-linux-kernel-microbenchmark
+		for (i = 0; i< num_nodes; i++) {
+			nodes[i].distance = UINT_MAX;
+			nodes[i].visited = 0;
+			nodes[i].prev_node_id = NO_NODE_ID;
+		}
 
-	// https://elixir.bootlin.com/linux/latest/source/arch/x86/include/asm/msr.h#L201
-	// works for micro-benchmarking (measures cpu ctcles, not timing)
-	// https://stackoverflow.com/a/19942784/974287
+		dowhile_counter = 0;
 
-	ktime_get_ts64(&start);
+		unvisited = num_nodes;
+
+		// https://stackoverflow.com/questions/22579157/kernel-mode-clock-gettime
+		// see linux/timekeeping.h
+		// see https://www.kernel.org/doc/html/latest/core-api/timekeeping.html
+
+
+		// https://vincent.bernat.ch/en/blog/2017-linux-kernel-microbenchmark
+
+		// https://elixir.bootlin.com/linux/latest/source/arch/x86/include/asm/msr.h#L201
+		// works for micro-benchmarking (measures cpu ctcles, not timing)
+		// https://stackoverflow.com/a/19942784/974287
+
+		ktime_get_ts64(&start);
 
 #ifdef USE_GET_CYCLE
-	t1 = myrdtsc(); //get_cycles();
+		t1 = myrdtsc(); //get_cycles();
 #endif
 
-	// void getnstimeofday (struct timespec *tv)
+		// void getnstimeofday (struct timespec *tv)
 
-	// https://stackoverflow.com/a/4655754/974287
-	// http://lxr.linux.no/#linux+v2.6.22.14/kernel/time.c#L310
-
-
-	//	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
-
-	nodes[origin_id].distance=0;
-	nodes[origin_id].prev_node_id = origin_id;
+		// https://stackoverflow.com/a/4655754/974287
+		// http://lxr.linux.no/#linux+v2.6.22.14/kernel/time.c#L310
 
 
-	while (unvisited) {
-		min_distance = UINT_MAX;
+		//	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 
-		for(i=0; i<num_nodes; i++) {
-			if (nodes[i].distance < min_distance && nodes[i].visited == 0) {
-				min_distance = nodes[i].distance;
-				indice = i;
+		nodes[origin_id].distance=0;
+		nodes[origin_id].prev_node_id = origin_id;
+
+
+		while (unvisited) {
+			min_distance = UINT_MAX;
+
+			for(i=0; i<num_nodes; i++) {
+				if (nodes[i].distance < min_distance && nodes[i].visited == 0) {
+					min_distance = nodes[i].distance;
+					indice = i;
+				}
 			}
+
+			if(min_distance == UINT_MAX) break;
+
+			visit = nodes[indice].adjacent;
+
+			for(i = 0; i < nodes[indice].num_adjacents; i++){
+				if(nodes[visit->id].distance > nodes[indice].distance + visit->distance){
+					nodes[visit->id].distance = nodes[indice].distance + visit->distance;
+					nodes[visit->id].prev_node_id = indice;
+				} visit++;
+			}
+			nodes[indice].visited=1;
+			unvisited--;
+			dowhile_counter++;
 		}
-
-		if(min_distance == UINT_MAX) break;
-
-		visit = nodes[indice].adjacent;
-
-		for(i = 0; i < nodes[indice].num_adjacents; i++){
-			if(nodes[visit->id].distance > nodes[indice].distance + visit->distance){
-				nodes[visit->id].distance = nodes[indice].distance + visit->distance;
-				nodes[visit->id].prev_node_id = indice;
-			} visit++;
-		}
-		nodes[indice].visited=1;
-		unvisited--;
-		dowhile_counter++;
-	}
 
 #ifdef USE_GET_CYCLE
-	t2 = myrdtsc(); //get_cycles();
+		t2 = myrdtsc(); //get_cycles();
 #endif
 
-	ktime_get_ts64(&stop);
+		ktime_get_ts64(&stop);
 
 
-	deltat = (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec);
+		deltat = (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec);
 
-	printk(KERN_INFO "dijkstra_kernel_thread: total cycles=%llu  total CPU time: %llu nanoseconds   "
-			"unvisited %u  dowhile_counter %u\n", t2 - t1, deltat, unvisited, dowhile_counter);
+		printk(KERN_INFO "dijkstra_kernel_thread: total cycles=%llu  total CPU time: %llu nanoseconds   "
+				"unvisited %u  dowhile_counter %u\n", t2 - t1, deltat, unvisited, dowhile_counter);
 
 
-/*
-struct timespec64 {
-	time64_t	tv_sec;			* seconds *
-	long		tv_nsec;		* nanoseconds *
-};
- */
-
-	// write results in a buffer
+		// write results in a buffer
 
 #ifdef SHOW_DIJKSTRA_RESULTS
 
 
-	printk(KERN_INFO "dijkstra results (node id, distance (from origin), previous node:\n");
+		printk(KERN_INFO "dijkstra results (node id, distance (from origin), previous node:\n");
 
-	for (i = 0; i< num_nodes; i++) {
-//		*pos++ = i;
-//		*pos++ = nodes[i].distance;
-//		*pos++ = nodes[i].prev_node_id;
-		printk(KERN_INFO "%u %u %u\n", i, nodes[i].distance, nodes[i].prev_node_id);
-	}
+		for (i = 0; i< num_nodes; i++) {
+	//		*pos++ = i;
+	//		*pos++ = nodes[i].distance;
+	//		*pos++ = nodes[i].prev_node_id;
+			printk(KERN_INFO "%u %u %u\n", i, nodes[i].distance, nodes[i].prev_node_id);
+		}
 
 #endif
 
+	}
 
 //	fprintf(stdout, "[kernel_process] dijkstra finished \n");
 

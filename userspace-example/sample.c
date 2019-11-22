@@ -264,6 +264,8 @@ void kernel_process(int fd_in, int fd_out) {
 
 	close(fd_in);
 
+	printf("\n\n");
+
 	for (int number_of_repetitions = 0; number_of_repetitions < 20; number_of_repetitions++) {
 
 		for (uint32_t i=0; i < num_nodes; i++) {
