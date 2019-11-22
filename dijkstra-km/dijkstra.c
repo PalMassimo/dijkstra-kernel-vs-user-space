@@ -124,9 +124,12 @@ static void free_nodes(void);
 
 //////////////// START of DIJKSTRA SECTION
 
+//#define USE_GET_CYCLE
+
+
 void dijkstra_kernel_thread(void) {
 
-	unsigned long long t1, t2;
+	unsigned long long t1=0, t2=0;
 	struct timespec64 start, stop;
 
 	u32 unvisited=num_nodes;
@@ -165,7 +168,9 @@ void dijkstra_kernel_thread(void) {
 
 	ktime_get_ts64(&start);
 
+#ifdef USE_GET_CYCLE
 	t1 = get_cycles();
+#endif
 
 	// void getnstimeofday (struct timespec *tv)
 
@@ -204,7 +209,9 @@ void dijkstra_kernel_thread(void) {
 		dowhile_counter++;
 	}
 
+#ifdef USE_GET_CYCLE
 	t2 = get_cycles();
+#endif
 
 	ktime_get_ts64(&stop);
 
