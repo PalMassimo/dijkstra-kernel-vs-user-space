@@ -238,6 +238,8 @@ int dijkstra_kernel_thread(void *arg) {
 		// works for micro-benchmarking (measures cpu ctcles, not timing)
 		// https://stackoverflow.com/a/19942784/974287
 
+		// https://www.kernel.org/doc/html/latest/core-api/timekeeping.html#nanosecond-timespec64-and-second-output
+
 		ktime_get_ts64(&start);
 
 #ifdef USE_GET_CYCLE
