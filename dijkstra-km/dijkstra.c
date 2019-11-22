@@ -414,7 +414,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 	Node * n;
 	u32 * buf;
 
+#ifdef DEBUG_MSG
 	printk(KERN_INFO "dijkstrachar dev_write: len=%lu bytes\n", len);
+#endif
 
 	if (/*current_node_id == NO_NODE_ID ||*/ num_nodes == NO_NODE_ID /*|| current_node_id >= num_nodes*/) {
 		printk(KERN_INFO "dijkstrachar: wrong num_nodes=%u\n", num_nodes);
@@ -458,7 +460,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
 
 	// expected length (in bytes) : sizeof(u32) * 2 + sizeof(u32) * num_adj
+#ifdef DEBUG_MSG
 	printk(KERN_INFO "dijkstrachar: minimum expected length : %lu bytes\n", sizeof(u32) * 2);
+#endif
 
 	if (len < sizeof(u32) * 2) { // miminum len in bytes
 		printk(KERN_INFO "dijkstrachar: wrong len= %lu bytes\n", len);
@@ -475,7 +479,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     // read from userspace data for current node
     node_id = buf[0];
 
+#ifdef DEBUG_MSG
     printk(KERN_INFO "dijkstrachar: node_id=%u\n", node_id);
+#endif
 
     if (node_id >= num_nodes) {
 		printk(KERN_INFO "dijkstrachar: wrong node_id= %u, max valid value is %u\n", node_id, num_nodes-1);
@@ -486,11 +492,15 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 //    peer_id = buf[1];
     num_adjacents = buf[1];
 
+#ifdef DEBUG_MSG
     printk(KERN_INFO "dijkstrachar: num_adjacents=%u\n", num_adjacents);
+#endif
 
     calculated_len = sizeof(u32) * (2 + num_adjacents * 2);
 
+#ifdef DEBUG_MSG
     printk(KERN_INFO "dijkstrachar: calculated_len=%u\n", calculated_len);
+#endif
 
     if (len < calculated_len)
     {
@@ -514,7 +524,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
     	n->adjacent[i].id = buf[2 + i * 2];
     	n->adjacent[i].distance = buf[2 + i * 2 + 1];
 
+#ifdef DEBUG_MSG
     	printk(KERN_INFO "adjacent i=%u - id=%u, distance=%u\n", i, n->adjacent[i].id, n->adjacent[i].distance);
+#endif
 
     	if (n->adjacent[i].id >= num_nodes) {
     		printk(KERN_INFO "dijkstrachar: wrong adjacent id= %u\n", n->adjacent[i].id);
@@ -525,7 +537,9 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
 	kvfree(kern_buf);
 
+#ifdef DEBUG_MSG
 	printk(KERN_INFO "dijkstrachar: completed read of node %u\n", node_id);
+#endif
 
 //   sprintf(message, "%s(%zu letters)", buffer, len);   // appending received string with its length
 //   size_of_message = strlen(message);                 // store the length of the stored message

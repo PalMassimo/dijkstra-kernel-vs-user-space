@@ -112,10 +112,10 @@ int main(){
 //			write(fd, &int_peer_distance, sizeof(uint32_t));
 		}
 
-		for (int i = 0; i < buf_len; i++)
-			printf("%i ", buf[i]);
-
-		printf("\n");
+//		for (int i = 0; i < buf_len; i++)
+//			printf("%i ", buf[i]);
+//
+//		printf("\n");
 
 		if (write(fd, buf, buf_len) == -1) {
 			printf("error while writing node %u to device\n", node_id);
