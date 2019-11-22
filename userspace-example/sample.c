@@ -260,6 +260,8 @@ void kernel_process(int fd_in, int fd_out) {
 			nodes[i].prev_node_id=-1;
 		}
 
+		dowhile_counter = 0;
+
 		clock_gettime(/*CLOCK_PROCESS_CPUTIME_ID*/ CLOCK_MONOTONIC, &start);
 
 		t1 = get_cycles();
@@ -299,7 +301,7 @@ void kernel_process(int fd_in, int fd_out) {
 		clock_gettime(/*CLOCK_PROCESS_CPUTIME_ID*/ CLOCK_MONOTONIC, &stop);
 		double result = (stop.tv_sec - start.tv_sec) * 1e9 + (stop.tv_nsec - start.tv_nsec) /*/ 1e3*/;
 		printf("[kernel]  total cycles: %llu , tempo di CPU consumato: "
-				"%lf nanoseconds, numero cicli do-while: %d\n", t2 - t1, result, dowhile_counter);
+				"%lf nanoseconds, unvisited: %d, dowhile_counter: %d\n", t2 - t1, result, unvisited, dowhile_counter);
 
 	}
 

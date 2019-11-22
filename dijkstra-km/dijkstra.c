@@ -137,6 +137,7 @@ void dijkstra_kernel_thread(void) {
 	Peer * visit;
 
 	long long deltat;
+	u32 dowhile_counter;
 
 	if (num_nodes == NO_NODE_ID) {
 		printk(KERN_INFO "dijkstra_kernel_thread: nothing to do!\n");
@@ -148,6 +149,8 @@ void dijkstra_kernel_thread(void) {
 		nodes[i].visited = 0;
 		nodes[i].prev_node_id = NO_NODE_ID;
 	}
+
+	dowhile_counter = 0;
 
 	// https://stackoverflow.com/questions/22579157/kernel-mode-clock-gettime
 	// see linux/timekeeping.h
@@ -198,7 +201,7 @@ void dijkstra_kernel_thread(void) {
 		}
 		nodes[indice].visited=1;
 		unvisited--;
-//		dowhile_counter++;
+		dowhile_counter++;
 	}
 
 	t2 = get_cycles();
@@ -208,7 +211,8 @@ void dijkstra_kernel_thread(void) {
 
 	deltat = (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_nsec - start.tv_nsec);
 
-	printk(KERN_INFO "dijkstra_kernel_thread: total cycles=%llu  total CPU time: %llu nanoseconds \n", t2 - t1, deltat);
+	printk(KERN_INFO "dijkstra_kernel_thread: total cycles=%llu  total CPU time: %llu nanoseconds   "
+			"unvisited %u  dowhile_counter %u\n", t2 - t1, deltat, unvisited, dowhile_counter);
 
 
 /*
