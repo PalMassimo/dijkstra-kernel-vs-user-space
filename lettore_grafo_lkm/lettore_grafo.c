@@ -25,16 +25,25 @@
 #define RD_NUM_NODES _IOR('a','d',int32_t*)
 
 #define BUFFER_LENGTH (256*256)            ///< The buffer length (crude but fine)
-static char receive[BUFFER_LENGTH];     ///< The receive buffer from the LKM
+//static char receive[BUFFER_LENGTH];     ///< The receive buffer from the LKM
 
 #define START_DIJKSTRA_THREAD 0xDEADBEEF
 
-int main(){
-   int ret, fd;
+int main(int argc, char *argv[]) {
+
+   int fd;
 //   char stringToSend[BUFFER_LENGTH];
 
    uint32_t num_nodes;
    uint32_t origin_id;
+
+	if (argc == 1) {
+		printf("argument: specify input file path.");
+
+		return 1;
+	}
+
+   char * input_file_name = argv[1];  //"./grafo.txt";
 
    printf("Starting device test code example...\n");
 
@@ -44,7 +53,7 @@ int main(){
       return errno;
    }
 
-   char * input_file_name = "./grafo.txt";
+   //char * input_file_name = "./grafo.txt";
 
    FILE * inPtr=fopen(input_file_name, "r");
    if(inPtr==NULL){
@@ -89,7 +98,7 @@ int main(){
 		char * buf = malloc(buf_len);
 		int i = 2;
 
-		printf("buf_len=%u\n",buf_len);
+		//printf("buf_len=%u\n",buf_len);
 
 		uint32_t * u32_buf = buf;
 
@@ -138,7 +147,7 @@ int main(){
 	write(fd, &msg, sizeof(msg));
 
 	// now we wait for incoming data
-	sleep(1);
+	//sleep(1);
 
 
 //	while ((ret = read(fd, receive, BUFFER_LENGTH)) > 0) {

@@ -11,6 +11,7 @@
 #include <time.h>
 #include <linux/types.h>
 #include <inttypes.h>
+#include <x86intrin.h>
 
 
 typedef struct peer {
@@ -29,9 +30,17 @@ typedef struct node {
 void lettore_grafo(char * file_name, int * pipe);
 void kernel_process(int fd_in, int fd_out);
 void ricevi_risultati(char * file_name, int * pipe);
+
+
 int main(int argc, char *argv[]){
 
-	char * input_file_name = "./grafo.txt";
+	if (argc == 1) {
+		printf("argument: specify input file path.");
+
+		return 1;
+	}
+
+	char * input_file_name = argv[1];  //"./grafo.txt";
 	char * output_file_name = "./output.txt";
 
 	//kernel_process work only with stdin, stdout (prepare them before passing to kernel_process)
@@ -75,6 +84,8 @@ int main(int argc, char *argv[]){
 //			perror("[kernel]: dup2");
 //			exit(EXIT_FAILURE);
 //		}
+
+		printf("started kernel process\n");
 
 		kernel_process(first_pipe[0], second_pipe[1]);
 
@@ -175,6 +186,7 @@ void lettore_grafo(char * file_name, int * fd_out) { // processo 1
 }
 
 
+
 unsigned long long get_cycles() {
   asm ("rdtsc");
 }
@@ -264,7 +276,8 @@ void kernel_process(int fd_in, int fd_out) {
 
 		clock_gettime(/*CLOCK_PROCESS_CPUTIME_ID*/ CLOCK_MONOTONIC, &start);
 
-		t1 = get_cycles();
+		// https://stackoverflow.com/questions/9887839/how-to-count-clock-cycles-with-rdtsc-in-gcc-x86#27257824
+		t1 = __rdtsc();
 
 		nodes[origin_id].distance=0;
 		nodes[origin_id].prev_node_id = origin_id;
@@ -296,7 +309,7 @@ void kernel_process(int fd_in, int fd_out) {
 			dowhile_counter++;
 		}
 
-		t2 = get_cycles();
+		t2 = __rdtsc();
 
 		clock_gettime(/*CLOCK_PROCESS_CPUTIME_ID*/ CLOCK_MONOTONIC, &stop);
 		double result = (stop.tv_sec - start.tv_sec) * 1e9 + (stop.tv_nsec - start.tv_nsec) /*/ 1e3*/;

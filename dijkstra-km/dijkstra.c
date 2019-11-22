@@ -39,6 +39,7 @@
 #include <linux/mm.h> // kvmalloc_node
 
 
+
 // https://embetronicx.com/tutorials/linux/device-drivers/ioctl-tutorial-in-linux/
 
 // https://stackoverflow.com/questions/2264384/how-do-i-use-ioctl-to-manipulate-my-kernel-module
@@ -124,8 +125,15 @@ static void free_nodes(void);
 
 //////////////// START of DIJKSTRA SECTION
 
-//#define USE_GET_CYCLE
+#define USE_GET_CYCLE
 
+// x64 architecture only
+static __inline__ unsigned long long myrdtsc(void)
+{
+    unsigned hi, lo;
+    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
 
 void dijkstra_kernel_thread(void) {
 
@@ -169,7 +177,7 @@ void dijkstra_kernel_thread(void) {
 	ktime_get_ts64(&start);
 
 #ifdef USE_GET_CYCLE
-	t1 = get_cycles();
+	t1 = myrdtsc(); //get_cycles();
 #endif
 
 	// void getnstimeofday (struct timespec *tv)
@@ -210,7 +218,7 @@ void dijkstra_kernel_thread(void) {
 	}
 
 #ifdef USE_GET_CYCLE
-	t2 = get_cycles();
+	t2 = myrdtsc(); //get_cycles();
 #endif
 
 	ktime_get_ts64(&stop);
