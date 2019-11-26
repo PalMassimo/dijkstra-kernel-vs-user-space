@@ -313,9 +313,11 @@ int dijkstra_kernel_thread(void *arg) {
 
 		if (wait_period > 0 && wait_period < 20) {
 			// https://www.kernel.org/doc/html/latest/timers/timers-howto.html
-			 usleep_range(wait_period * 1000, (wait_period+1 * 1000));
+			usleep_range(wait_period * 1000, (wait_period+1 * 1000));
+			printk(KERN_INFO "usleep_range (%u,%u)\n", wait_period * 1000, (wait_period+1 * 1000));
 		} else if (wait_period >= 20) {
 			msleep(wait_period);
+			printk(KERN_INFO "msleep (%u)\n", wait_period);
 		}
 
 		// write results in a buffer
