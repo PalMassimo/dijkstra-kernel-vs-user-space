@@ -1,0 +1,659 @@
+
+dijkstra.ko:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000000000 <dijkstra_kernel_thread>:
+   0:	e8 00 00 00 00       	callq  5 <dijkstra_kernel_thread+0x5>
+   5:	55                   	push   %rbp
+   6:	48 89 e5             	mov    %rsp,%rbp
+   9:	41 57                	push   %r15
+   b:	41 56                	push   %r14
+   d:	41 55                	push   %r13
+   f:	41 54                	push   %r12
+  11:	53                   	push   %rbx
+  12:	48 83 ec 40          	sub    $0x40,%rsp
+  16:	65 48 8b 04 25 28 00 	mov    %gs:0x28,%rax
+  1d:	00 00 
+  1f:	48 89 45 d0          	mov    %rax,-0x30(%rbp)
+  23:	31 c0                	xor    %eax,%eax
+  25:	83 3d 00 00 00 00 ff 	cmpl   $0xffffffff,0x0(%rip)        # 2c <dijkstra_kernel_thread+0x2c>
+  2c:	74 34                	je     62 <dijkstra_kernel_thread+0x62>
+  2e:	44 8b 1f             	mov    (%rdi),%r11d
+  31:	48 89 fb             	mov    %rdi,%rbx
+  34:	45 85 db             	test   %r11d,%r11d
+  37:	7f 3c                	jg     75 <dijkstra_kernel_thread+0x75>
+  39:	48 8b 7b 08          	mov    0x8(%rbx),%rdi
+  3d:	e8 00 00 00 00       	callq  42 <dijkstra_kernel_thread+0x42>
+  42:	31 c0                	xor    %eax,%eax
+  44:	48 8b 75 d0          	mov    -0x30(%rbp),%rsi
+  48:	65 48 33 34 25 28 00 	xor    %gs:0x28,%rsi
+  4f:	00 00 
+  51:	75 1d                	jne    70 <dijkstra_kernel_thread+0x70>
+  53:	48 83 c4 40          	add    $0x40,%rsp
+  57:	5b                   	pop    %rbx
+  58:	41 5c                	pop    %r12
+  5a:	41 5d                	pop    %r13
+  5c:	41 5e                	pop    %r14
+  5e:	41 5f                	pop    %r15
+  60:	5d                   	pop    %rbp
+  61:	c3                   	retq   
+  62:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+  69:	e8 00 00 00 00       	callq  6e <dijkstra_kernel_thread+0x6e>
+  6e:	eb d2                	jmp    42 <dijkstra_kernel_thread+0x42>
+  70:	e8 00 00 00 00       	callq  75 <dijkstra_kernel_thread+0x75>
+  75:	45 31 e4             	xor    %r12d,%r12d
+  78:	49 83 cd ff          	or     $0xffffffffffffffff,%r13
+  7c:	44 8b 3d 00 00 00 00 	mov    0x0(%rip),%r15d        # 83 <dijkstra_kernel_thread+0x83>
+  83:	45 85 ff             	test   %r15d,%r15d
+  86:	74 2c                	je     b4 <dijkstra_kernel_thread+0xb4>
+  88:	48 8b 0d 00 00 00 00 	mov    0x0(%rip),%rcx        # 8f <dijkstra_kernel_thread+0x8f>
+  8f:	31 c0                	xor    %eax,%eax
+  91:	89 c2                	mov    %eax,%edx
+  93:	83 c0 01             	add    $0x1,%eax
+  96:	48 8d 14 52          	lea    (%rdx,%rdx,2),%rdx
+  9a:	48 8d 14 d1          	lea    (%rcx,%rdx,8),%rdx
+  9e:	c7 02 00 00 00 00    	movl   $0x0,(%rdx)
+  a4:	44 8b 3d 00 00 00 00 	mov    0x0(%rip),%r15d        # ab <dijkstra_kernel_thread+0xab>
+  ab:	4c 89 6a 10          	mov    %r13,0x10(%rdx)
+  af:	41 39 c7             	cmp    %eax,%r15d
+  b2:	77 dd                	ja     91 <dijkstra_kernel_thread+0x91>
+  b4:	48 8d 7d b0          	lea    -0x50(%rbp),%rdi
+  b8:	e8 00 00 00 00       	callq  bd <dijkstra_kernel_thread+0xbd>
+  bd:	0f 31                	rdtsc  
+
+  bf:	48 c1 e2 20          	shl    $0x20,%rdx
+  c3:	48 8b 35 00 00 00 00 	mov    0x0(%rip),%rsi        # ca <dijkstra_kernel_thread+0xca>
+  ca:	45 31 c0             	xor    %r8d,%r8d
+  cd:	48 09 c2             	or     %rax,%rdx
+  d0:	8b 05 00 00 00 00    	mov    0x0(%rip),%eax        # d6 <dijkstra_kernel_thread+0xd6>
+  d6:	48 89 55 a8          	mov    %rdx,-0x58(%rbp)
+  da:	48 89 c2             	mov    %rax,%rdx
+  dd:	48 6b c0 18          	imul   $0x18,%rax,%rax
+  e1:	48 01 f0             	add    %rsi,%rax
+  e4:	45 85 ff             	test   %r15d,%r15d
+  e7:	c7 40 10 00 00 00 00 	movl   $0x0,0x10(%rax)
+  ee:	89 50 14             	mov    %edx,0x14(%rax)
+  f1:	0f 84 fa 00 00 00    	je     1f1 <dijkstra_kernel_thread+0x1f1>
+  f7:	44 8b 0d 00 00 00 00 	mov    0x0(%rip),%r9d        # fe <dijkstra_kernel_thread+0xfe>
+  fe:	45 85 c9             	test   %r9d,%r9d
+ 101:	0f 84 8c 00 00 00    	je     193 <dijkstra_kernel_thread+0x193>
+ 107:	48 89 f0             	mov    %rsi,%rax
+ 10a:	31 d2                	xor    %edx,%edx
+ 10c:	bf ff ff ff ff       	mov    $0xffffffff,%edi
+ 111:	8b 48 10             	mov    0x10(%rax),%ecx
+ 114:	39 f9                	cmp    %edi,%ecx
+ 116:	73 0d                	jae    125 <dijkstra_kernel_thread+0x125>
+ 118:	44 8b 10             	mov    (%rax),%r10d
+ 11b:	45 85 d2             	test   %r10d,%r10d
+ 11e:	0f 44 f9             	cmove  %ecx,%edi
+ 121:	44 0f 44 f2          	cmove  %edx,%r14d
+ 125:	83 c2 01             	add    $0x1,%edx
+ 128:	48 83 c0 18          	add    $0x18,%rax
+ 12c:	44 39 ca             	cmp    %r9d,%edx
+ 12f:	75 e0                	jne    111 <dijkstra_kernel_thread+0x111>
+ 131:	83 ff ff             	cmp    $0xffffffff,%edi
+ 134:	74 5d                	je     193 <dijkstra_kernel_thread+0x193>
+ 136:	44 89 f0             	mov    %r14d,%eax
+ 139:	48 8d 04 40          	lea    (%rax,%rax,2),%rax
+ 13d:	48 8d 3c c6          	lea    (%rsi,%rax,8),%rdi
+ 141:	8b 57 04             	mov    0x4(%rdi),%edx
+ 144:	48 8b 47 08          	mov    0x8(%rdi),%rax
+ 148:	85 d2                	test   %edx,%edx
+ 14a:	74 33                	je     17f <dijkstra_kernel_thread+0x17f>
+ 14c:	31 c9                	xor    %ecx,%ecx
+ 14e:	8b 10                	mov    (%rax),%edx
+ 150:	48 8d 14 52          	lea    (%rdx,%rdx,2),%rdx
+ 154:	4c 8d 0c d6          	lea    (%rsi,%rdx,8),%r9
+ 158:	8b 50 04             	mov    0x4(%rax),%edx
+ 15b:	03 57 10             	add    0x10(%rdi),%edx
+ 15e:	41 39 51 10          	cmp    %edx,0x10(%r9)
+ 162:	76 0f                	jbe    173 <dijkstra_kernel_thread+0x173>
+ 164:	41 89 51 10          	mov    %edx,0x10(%r9)
+ 168:	8b 10                	mov    (%rax),%edx
+ 16a:	48 8d 14 52          	lea    (%rdx,%rdx,2),%rdx
+ 16e:	44 89 74 d6 14       	mov    %r14d,0x14(%rsi,%rdx,8)
+ 173:	48 83 c0 08          	add    $0x8,%rax
+ 177:	83 c1 01             	add    $0x1,%ecx
+ 17a:	39 4f 04             	cmp    %ecx,0x4(%rdi)
+ 17d:	77 cf                	ja     14e <dijkstra_kernel_thread+0x14e>
+ 17f:	41 83 c0 01          	add    $0x1,%r8d
+ 183:	41 83 ef 01          	sub    $0x1,%r15d
+ 187:	c7 07 01 00 00 00    	movl   $0x1,(%rdi)
+ 18d:	0f 85 64 ff ff ff    	jne    f7 <dijkstra_kernel_thread+0xf7>
+ 193:	44 89 45 9c          	mov    %r8d,-0x64(%rbp)
+ 197:	0f 31                	rdtsc
+  
+ 199:	48 c1 e2 20          	shl    $0x20,%rdx
+ 19d:	48 8d 7d c0          	lea    -0x40(%rbp),%rdi
+ 1a1:	41 83 c4 01          	add    $0x1,%r12d
+ 1a5:	48 09 c2             	or     %rax,%rdx
+ 1a8:	48 89 55 a0          	mov    %rdx,-0x60(%rbp)
+ 1ac:	e8 00 00 00 00       	callq  1b1 <dijkstra_kernel_thread+0x1b1>
+ 1b1:	48 8b 55 c0          	mov    -0x40(%rbp),%rdx
+ 1b5:	48 2b 55 b0          	sub    -0x50(%rbp),%rdx
+ 1b9:	44 89 f9             	mov    %r15d,%ecx
+ 1bc:	48 8b 75 a0          	mov    -0x60(%rbp),%rsi
+ 1c0:	48 2b 75 a8          	sub    -0x58(%rbp),%rsi
+ 1c4:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 1cb:	44 8b 45 9c          	mov    -0x64(%rbp),%r8d
+ 1cf:	48 69 d2 00 ca 9a 3b 	imul   $0x3b9aca00,%rdx,%rdx
+ 1d6:	48 03 55 c8          	add    -0x38(%rbp),%rdx
+ 1da:	48 2b 55 b8          	sub    -0x48(%rbp),%rdx
+ 1de:	e8 00 00 00 00       	callq  1e3 <dijkstra_kernel_thread+0x1e3>
+ 1e3:	44 39 23             	cmp    %r12d,(%rbx)
+ 1e6:	0f 8e 4d fe ff ff    	jle    39 <dijkstra_kernel_thread+0x39>
+ 1ec:	e9 8b fe ff ff       	jmpq   7c <dijkstra_kernel_thread+0x7c>
+ 1f1:	45 89 f8             	mov    %r15d,%r8d
+ 1f4:	eb 9d                	jmp    193 <dijkstra_kernel_thread+0x193>
+ 1f6:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+ 1fd:	00 00 00 
+
+0000000000000200 <dev_release>:
+ 200:	e8 00 00 00 00       	callq  205 <dev_release+0x5>
+ 205:	48 83 3d 00 00 00 00 	cmpq   $0x0,0x0(%rip)        # 20d <dev_release+0xd>
+ 20c:	00 
+ 20d:	55                   	push   %rbp
+ 20e:	48 89 e5             	mov    %rsp,%rbp
+ 211:	53                   	push   %rbx
+ 212:	75 31                	jne    245 <dev_release+0x45>
+ 214:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 21b:	c7 05 00 00 00 00 ff 	movl   $0xffffffff,0x0(%rip)        # 225 <dev_release+0x25>
+ 222:	ff ff ff 
+ 225:	c7 05 00 00 00 00 ff 	movl   $0xffffffff,0x0(%rip)        # 22f <dev_release+0x2f>
+ 22c:	ff ff ff 
+ 22f:	e8 00 00 00 00       	callq  234 <dev_release+0x34>
+ 234:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 23b:	e8 00 00 00 00       	callq  240 <dev_release+0x40>
+ 240:	31 c0                	xor    %eax,%eax
+ 242:	5b                   	pop    %rbx
+ 243:	5d                   	pop    %rbp
+ 244:	c3                   	retq   
+ 245:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 24c:	e8 00 00 00 00       	callq  251 <dev_release+0x51>
+ 251:	31 c0                	xor    %eax,%eax
+ 253:	48 83 3d 00 00 00 00 	cmpq   $0x0,0x0(%rip)        # 25b <dev_release+0x5b>
+ 25a:	00 
+ 25b:	74 40                	je     29d <dev_release+0x9d>
+ 25d:	83 3d 00 00 00 00 00 	cmpl   $0x0,0x0(%rip)        # 264 <dev_release+0x64>
+ 264:	48 8b 05 00 00 00 00 	mov    0x0(%rip),%rax        # 26b <dev_release+0x6b>
+ 26b:	74 30                	je     29d <dev_release+0x9d>
+ 26d:	48 8b 05 00 00 00 00 	mov    0x0(%rip),%rax        # 274 <dev_release+0x74>
+ 274:	31 db                	xor    %ebx,%ebx
+ 276:	89 da                	mov    %ebx,%edx
+ 278:	48 8d 14 52          	lea    (%rdx,%rdx,2),%rdx
+ 27c:	48 8b 7c d0 08       	mov    0x8(%rax,%rdx,8),%rdi
+ 281:	48 85 ff             	test   %rdi,%rdi
+ 284:	74 0c                	je     292 <dev_release+0x92>
+ 286:	e8 00 00 00 00       	callq  28b <dev_release+0x8b>
+ 28b:	48 8b 05 00 00 00 00 	mov    0x0(%rip),%rax        # 292 <dev_release+0x92>
+ 292:	83 c3 01             	add    $0x1,%ebx
+ 295:	3b 1d 00 00 00 00    	cmp    0x0(%rip),%ebx        # 29b <dev_release+0x9b>
+ 29b:	72 d9                	jb     276 <dev_release+0x76>
+ 29d:	48 89 c7             	mov    %rax,%rdi
+ 2a0:	e8 00 00 00 00       	callq  2a5 <dev_release+0xa5>
+ 2a5:	48 c7 05 00 00 00 00 	movq   $0x0,0x0(%rip)        # 2b0 <dev_release+0xb0>
+ 2ac:	00 00 00 00 
+ 2b0:	c7 05 00 00 00 00 00 	movl   $0x0,0x0(%rip)        # 2ba <dev_release+0xba>
+ 2b7:	00 00 00 
+ 2ba:	e9 55 ff ff ff       	jmpq   214 <dev_release+0x14>
+ 2bf:	90                   	nop
+
+00000000000002c0 <dev_open>:
+ 2c0:	e8 00 00 00 00       	callq  2c5 <dev_open+0x5>
+ 2c5:	55                   	push   %rbp
+ 2c6:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 2cd:	48 89 e5             	mov    %rsp,%rbp
+ 2d0:	e8 00 00 00 00       	callq  2d5 <dev_open+0x15>
+ 2d5:	85 c0                	test   %eax,%eax
+ 2d7:	74 1f                	je     2f8 <dev_open+0x38>
+ 2d9:	8b 05 00 00 00 00    	mov    0x0(%rip),%eax        # 2df <dev_open+0x1f>
+ 2df:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 2e6:	8d 70 01             	lea    0x1(%rax),%esi
+ 2e9:	89 35 00 00 00 00    	mov    %esi,0x0(%rip)        # 2ef <dev_open+0x2f>
+ 2ef:	e8 00 00 00 00       	callq  2f4 <dev_open+0x34>
+ 2f4:	31 c0                	xor    %eax,%eax
+ 2f6:	5d                   	pop    %rbp
+ 2f7:	c3                   	retq   
+ 2f8:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 2ff:	e8 00 00 00 00       	callq  304 <dev_open+0x44>
+ 304:	b8 f0 ff ff ff       	mov    $0xfffffff0,%eax
+ 309:	5d                   	pop    %rbp
+ 30a:	c3                   	retq   
+ 30b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+
+0000000000000310 <etx_ioctl>:
+ 310:	e8 00 00 00 00       	callq  315 <etx_ioctl+0x5>
+ 315:	55                   	push   %rbp
+ 316:	81 fe 62 61 08 80    	cmp    $0x80086162,%esi
+ 31c:	48 89 e5             	mov    %rsp,%rbp
+ 31f:	53                   	push   %rbx
+ 320:	48 89 d3             	mov    %rdx,%rbx
+ 323:	0f 84 95 00 00 00    	je     3be <etx_ioctl+0xae>
+ 329:	0f 86 bc 00 00 00    	jbe    3eb <etx_ioctl+0xdb>
+ 32f:	81 fe 65 61 08 80    	cmp    $0x80086165,%esi
+ 335:	74 15                	je     34c <etx_ioctl+0x3c>
+ 337:	81 fe 66 61 08 80    	cmp    $0x80086166,%esi
+ 33d:	74 59                	je     398 <etx_ioctl+0x88>
+ 33f:	81 fe 64 61 08 80    	cmp    $0x80086164,%esi
+ 345:	74 2b                	je     372 <etx_ioctl+0x62>
+ 347:	31 c0                	xor    %eax,%eax
+ 349:	5b                   	pop    %rbx
+ 34a:	5d                   	pop    %rbp
+ 34b:	c3                   	retq   
+ 34c:	ba 04 00 00 00       	mov    $0x4,%edx
+ 351:	48 89 de             	mov    %rbx,%rsi
+ 354:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 35b:	e8 00 00 00 00       	callq  360 <etx_ioctl+0x50>
+ 360:	85 c0                	test   %eax,%eax
+ 362:	74 e3                	je     347 <etx_ioctl+0x37>
+ 364:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 36b:	e8 00 00 00 00       	callq  370 <etx_ioctl+0x60>
+ 370:	eb d5                	jmp    347 <etx_ioctl+0x37>
+ 372:	ba 04 00 00 00       	mov    $0x4,%edx
+ 377:	48 c7 c6 00 00 00 00 	mov    $0x0,%rsi
+ 37e:	48 89 df             	mov    %rbx,%rdi
+ 381:	e8 00 00 00 00       	callq  386 <etx_ioctl+0x76>
+ 386:	85 c0                	test   %eax,%eax
+ 388:	74 bd                	je     347 <etx_ioctl+0x37>
+ 38a:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 391:	e8 00 00 00 00       	callq  396 <etx_ioctl+0x86>
+ 396:	eb af                	jmp    347 <etx_ioctl+0x37>
+ 398:	ba 04 00 00 00       	mov    $0x4,%edx
+ 39d:	48 c7 c6 00 00 00 00 	mov    $0x0,%rsi
+ 3a4:	48 89 df             	mov    %rbx,%rdi
+ 3a7:	e8 00 00 00 00       	callq  3ac <etx_ioctl+0x9c>
+ 3ac:	85 c0                	test   %eax,%eax
+ 3ae:	74 97                	je     347 <etx_ioctl+0x37>
+ 3b0:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 3b7:	e8 00 00 00 00       	callq  3bc <etx_ioctl+0xac>
+ 3bc:	eb 89                	jmp    347 <etx_ioctl+0x37>
+ 3be:	ba 04 00 00 00       	mov    $0x4,%edx
+ 3c3:	48 c7 c6 00 00 00 00 	mov    $0x0,%rsi
+ 3ca:	48 89 df             	mov    %rbx,%rdi
+ 3cd:	e8 00 00 00 00       	callq  3d2 <etx_ioctl+0xc2>
+ 3d2:	85 c0                	test   %eax,%eax
+ 3d4:	0f 84 6d ff ff ff    	je     347 <etx_ioctl+0x37>
+ 3da:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 3e1:	e8 00 00 00 00       	callq  3e6 <etx_ioctl+0xd6>
+ 3e6:	e9 5c ff ff ff       	jmpq   347 <etx_ioctl+0x37>
+ 3eb:	81 fe 61 61 08 40    	cmp    $0x40086161,%esi
+ 3f1:	0f 84 a9 00 00 00    	je     4a0 <etx_ioctl+0x190>
+ 3f7:	81 fe 63 61 08 40    	cmp    $0x40086163,%esi
+ 3fd:	0f 85 44 ff ff ff    	jne    347 <etx_ioctl+0x37>
+ 403:	48 83 3d 00 00 00 00 	cmpq   $0x0,0x0(%rip)        # 40b <etx_ioctl+0xfb>
+ 40a:	00 
+ 40b:	0f 85 cf 00 00 00    	jne    4e0 <etx_ioctl+0x1d0>
+ 411:	ba 04 00 00 00       	mov    $0x4,%edx
+ 416:	48 89 de             	mov    %rbx,%rsi
+ 419:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 420:	e8 00 00 00 00       	callq  425 <etx_ioctl+0x115>
+ 425:	85 c0                	test   %eax,%eax
+ 427:	0f 85 a2 00 00 00    	jne    4cf <etx_ioctl+0x1bf>
+ 42d:	8b 35 00 00 00 00    	mov    0x0(%rip),%esi        # 433 <etx_ioctl+0x123>
+ 433:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 43a:	e8 00 00 00 00       	callq  43f <etx_ioctl+0x12f>
+ 43f:	8b 3d 00 00 00 00    	mov    0x0(%rip),%edi        # 445 <etx_ioctl+0x135>
+ 445:	31 d2                	xor    %edx,%edx
+ 447:	be c0 00 60 00       	mov    $0x6000c0,%esi
+ 44c:	48 6b ff 18          	imul   $0x18,%rdi,%rdi
+ 450:	e8 00 00 00 00       	callq  455 <etx_ioctl+0x145>
+ 455:	8b 35 00 00 00 00    	mov    0x0(%rip),%esi        # 45b <etx_ioctl+0x14b>
+ 45b:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 462:	48 89 05 00 00 00 00 	mov    %rax,0x0(%rip)        # 469 <etx_ioctl+0x159>
+ 469:	48 6b f6 18          	imul   $0x18,%rsi,%rsi
+ 46d:	e8 00 00 00 00       	callq  472 <etx_ioctl+0x162>
+ 472:	be 18 00 00 00       	mov    $0x18,%esi
+ 477:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 47e:	e8 00 00 00 00       	callq  483 <etx_ioctl+0x173>
+ 483:	8b 15 00 00 00 00    	mov    0x0(%rip),%edx        # 489 <etx_ioctl+0x179>
+ 489:	48 8b 3d 00 00 00 00 	mov    0x0(%rip),%rdi        # 490 <etx_ioctl+0x180>
+ 490:	31 f6                	xor    %esi,%esi
+ 492:	48 6b d2 18          	imul   $0x18,%rdx,%rdx
+ 496:	e8 00 00 00 00       	callq  49b <etx_ioctl+0x18b>
+ 49b:	e9 a7 fe ff ff       	jmpq   347 <etx_ioctl+0x37>
+ 4a0:	ba 04 00 00 00       	mov    $0x4,%edx
+ 4a5:	48 89 de             	mov    %rbx,%rsi
+ 4a8:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 4af:	e8 00 00 00 00       	callq  4b4 <etx_ioctl+0x1a4>
+ 4b4:	85 c0                	test   %eax,%eax
+ 4b6:	75 45                	jne    4fd <etx_ioctl+0x1ed>
+ 4b8:	8b 35 00 00 00 00    	mov    0x0(%rip),%esi        # 4be <etx_ioctl+0x1ae>
+ 4be:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 4c5:	e8 00 00 00 00       	callq  4ca <etx_ioctl+0x1ba>
+ 4ca:	e9 78 fe ff ff       	jmpq   347 <etx_ioctl+0x37>
+ 4cf:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 4d6:	e8 00 00 00 00       	callq  4db <etx_ioctl+0x1cb>
+ 4db:	e9 4d ff ff ff       	jmpq   42d <etx_ioctl+0x11d>
+ 4e0:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 4e7:	e8 00 00 00 00       	callq  4ec <etx_ioctl+0x1dc>
+ 4ec:	48 8b 3d 00 00 00 00 	mov    0x0(%rip),%rdi        # 4f3 <etx_ioctl+0x1e3>
+ 4f3:	e8 00 00 00 00       	callq  4f8 <etx_ioctl+0x1e8>
+ 4f8:	e9 14 ff ff ff       	jmpq   411 <etx_ioctl+0x101>
+ 4fd:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 504:	e8 00 00 00 00       	callq  509 <etx_ioctl+0x1f9>
+ 509:	eb ad                	jmp    4b8 <etx_ioctl+0x1a8>
+ 50b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+
+0000000000000510 <dev_read>:
+ 510:	e8 00 00 00 00       	callq  515 <dev_read+0x5>
+ 515:	55                   	push   %rbp
+ 516:	48 89 e5             	mov    %rsp,%rbp
+ 519:	41 54                	push   %r12
+ 51b:	53                   	push   %rbx
+ 51c:	48 0f bf 1d 00 00 00 	movswq 0x0(%rip),%rbx        # 524 <dev_read+0x14>
+ 523:	00 
+ 524:	48 81 fb 00 01 00 00 	cmp    $0x100,%rbx
+ 52b:	77 53                	ja     580 <dev_read+0x70>
+ 52d:	49 89 f4             	mov    %rsi,%r12
+ 530:	ba 01 00 00 00       	mov    $0x1,%edx
+ 535:	48 89 de             	mov    %rbx,%rsi
+ 538:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 53f:	e8 00 00 00 00       	callq  544 <dev_read+0x34>
+ 544:	48 89 da             	mov    %rbx,%rdx
+ 547:	48 c7 c6 00 00 00 00 	mov    $0x0,%rsi
+ 54e:	4c 89 e7             	mov    %r12,%rdi
+ 551:	e8 00 00 00 00       	callq  556 <dev_read+0x46>
+ 556:	48 89 c3             	mov    %rax,%rbx
+ 559:	85 db                	test   %ebx,%ebx
+ 55b:	75 3b                	jne    598 <dev_read+0x88>
+ 55d:	0f bf 35 00 00 00 00 	movswl 0x0(%rip),%esi        # 564 <dev_read+0x54>
+ 564:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 56b:	e8 00 00 00 00       	callq  570 <dev_read+0x60>
+ 570:	31 c0                	xor    %eax,%eax
+ 572:	66 89 05 00 00 00 00 	mov    %ax,0x0(%rip)        # 579 <dev_read+0x69>
+ 579:	31 c0                	xor    %eax,%eax
+ 57b:	5b                   	pop    %rbx
+ 57c:	41 5c                	pop    %r12
+ 57e:	5d                   	pop    %rbp
+ 57f:	c3                   	retq   
+ 580:	48 89 da             	mov    %rbx,%rdx
+ 583:	be 00 01 00 00       	mov    $0x100,%esi
+ 588:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 58f:	e8 00 00 00 00       	callq  594 <dev_read+0x84>
+ 594:	0f 0b                	ud2    
+ 596:	eb c1                	jmp    559 <dev_read+0x49>
+ 598:	89 de                	mov    %ebx,%esi
+ 59a:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 5a1:	e8 00 00 00 00       	callq  5a6 <dev_read+0x96>
+ 5a6:	48 c7 c0 f2 ff ff ff 	mov    $0xfffffffffffffff2,%rax
+ 5ad:	eb cc                	jmp    57b <dev_read+0x6b>
+ 5af:	90                   	nop
+
+00000000000005b0 <call_dijkstra_kernel_thread>:
+ 5b0:	e8 00 00 00 00       	callq  5b5 <call_dijkstra_kernel_thread+0x5>
+ 5b5:	55                   	push   %rbp
+ 5b6:	48 8b 3d 00 00 00 00 	mov    0x0(%rip),%rdi        # 5bd <call_dijkstra_kernel_thread+0xd>
+ 5bd:	ba 10 00 00 00       	mov    $0x10,%edx
+ 5c2:	be c0 00 60 00       	mov    $0x6000c0,%esi
+ 5c7:	48 89 e5             	mov    %rsp,%rbp
+ 5ca:	53                   	push   %rbx
+ 5cb:	e8 00 00 00 00       	callq  5d0 <call_dijkstra_kernel_thread+0x20>
+ 5d0:	48 85 c0             	test   %rax,%rax
+ 5d3:	74 56                	je     62b <call_dijkstra_kernel_thread+0x7b>
+ 5d5:	45 31 c0             	xor    %r8d,%r8d
+ 5d8:	48 c7 40 08 00 00 00 	movq   $0x0,0x8(%rax)
+ 5df:	00 
+ 5e0:	c7 00 14 00 00 00    	movl   $0x14,(%rax)
+ 5e6:	48 c7 c1 00 00 00 00 	mov    $0x0,%rcx
+ 5ed:	ba ff ff ff ff       	mov    $0xffffffff,%edx
+ 5f2:	48 89 c6             	mov    %rax,%rsi
+ 5f5:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 5fc:	48 89 c3             	mov    %rax,%rbx
+ 5ff:	e8 00 00 00 00       	callq  604 <call_dijkstra_kernel_thread+0x54>
+ 604:	48 3d 00 f0 ff ff    	cmp    $0xfffffffffffff000,%rax
+ 60a:	77 08                	ja     614 <call_dijkstra_kernel_thread+0x64>
+ 60c:	48 89 c7             	mov    %rax,%rdi
+ 60f:	e8 00 00 00 00       	callq  614 <call_dijkstra_kernel_thread+0x64>
+ 614:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 61b:	e8 00 00 00 00       	callq  620 <call_dijkstra_kernel_thread+0x70>
+ 620:	48 89 df             	mov    %rbx,%rdi
+ 623:	e8 00 00 00 00       	callq  628 <call_dijkstra_kernel_thread+0x78>
+ 628:	5b                   	pop    %rbx
+ 629:	5d                   	pop    %rbp
+ 62a:	c3                   	retq   
+ 62b:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 632:	e8 00 00 00 00       	callq  637 <call_dijkstra_kernel_thread+0x87>
+ 637:	eb ef                	jmp    628 <call_dijkstra_kernel_thread+0x78>
+ 639:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
+
+0000000000000640 <dev_write>:
+ 640:	e8 00 00 00 00       	callq  645 <dev_write+0x5>
+ 645:	83 3d 00 00 00 00 ff 	cmpl   $0xffffffff,0x0(%rip)        # 64c <dev_write+0xc>
+ 64c:	55                   	push   %rbp
+ 64d:	48 89 e5             	mov    %rsp,%rbp
+ 650:	41 57                	push   %r15
+ 652:	41 56                	push   %r14
+ 654:	41 55                	push   %r13
+ 656:	41 54                	push   %r12
+ 658:	53                   	push   %rbx
+ 659:	0f 84 ae 01 00 00    	je     80d <dev_write+0x1cd>
+ 65f:	49 89 d5             	mov    %rdx,%r13
+ 662:	48 89 f3             	mov    %rsi,%rbx
+ 665:	31 d2                	xor    %edx,%edx
+ 667:	be c0 00 60 00       	mov    $0x6000c0,%esi
+ 66c:	4c 89 ef             	mov    %r13,%rdi
+ 66f:	e8 00 00 00 00       	callq  674 <dev_write+0x34>
+ 674:	48 85 c0             	test   %rax,%rax
+ 677:	49 89 c4             	mov    %rax,%r12
+ 67a:	0f 84 61 01 00 00    	je     7e1 <dev_write+0x1a1>
+ 680:	31 d2                	xor    %edx,%edx
+ 682:	48 89 c7             	mov    %rax,%rdi
+ 685:	4c 89 ee             	mov    %r13,%rsi
+ 688:	e8 00 00 00 00       	callq  68d <dev_write+0x4d>
+ 68d:	48 89 de             	mov    %rbx,%rsi
+ 690:	4c 89 ea             	mov    %r13,%rdx
+ 693:	4c 89 e7             	mov    %r12,%rdi
+ 696:	e8 00 00 00 00       	callq  69b <dev_write+0x5b>
+ 69b:	48 85 c0             	test   %rax,%rax
+ 69e:	48 89 c3             	mov    %rax,%rbx
+ 6a1:	0f 85 46 01 00 00    	jne    7ed <dev_write+0x1ad>
+ 6a7:	49 83 fd 04          	cmp    $0x4,%r13
+ 6ab:	74 76                	je     723 <dev_write+0xe3>
+ 6ad:	49 83 fd 07          	cmp    $0x7,%r13
+ 6b1:	76 7e                	jbe    731 <dev_write+0xf1>
+ 6b3:	41 8b 34 24          	mov    (%r12),%esi
+ 6b7:	8b 05 00 00 00 00    	mov    0x0(%rip),%eax        # 6bd <dev_write+0x7d>
+ 6bd:	39 f0                	cmp    %esi,%eax
+ 6bf:	0f 86 63 01 00 00    	jbe    828 <dev_write+0x1e8>
+ 6c5:	45 8b 7c 24 04       	mov    0x4(%r12),%r15d
+ 6ca:	42 8d 04 fd 08 00 00 	lea    0x8(,%r15,8),%eax
+ 6d1:	00 
+ 6d2:	4c 39 e8             	cmp    %r13,%rax
+ 6d5:	48 89 c2             	mov    %rax,%rdx
+ 6d8:	0f 87 6d 01 00 00    	ja     84b <dev_write+0x20b>
+ 6de:	48 8b 05 00 00 00 00 	mov    0x0(%rip),%rax        # 6e5 <dev_write+0xa5>
+ 6e5:	48 8d 14 76          	lea    (%rsi,%rsi,2),%rdx
+ 6e9:	45 85 ff             	test   %r15d,%r15d
+ 6ec:	4c 8d 34 d0          	lea    (%rax,%rdx,8),%r14
+ 6f0:	45 89 7e 04          	mov    %r15d,0x4(%r14)
+ 6f4:	75 5b                	jne    751 <dev_write+0x111>
+ 6f6:	41 c7 06 00 00 00 00 	movl   $0x0,(%r14)
+ 6fd:	49 c7 46 08 00 00 00 	movq   $0x0,0x8(%r14)
+ 704:	00 
+ 705:	49 c7 46 10 ff ff ff 	movq   $0xffffffffffffffff,0x10(%r14)
+ 70c:	ff 
+ 70d:	4c 89 e7             	mov    %r12,%rdi
+ 710:	e8 00 00 00 00       	callq  715 <dev_write+0xd5>
+ 715:	4c 89 e8             	mov    %r13,%rax
+ 718:	5b                   	pop    %rbx
+ 719:	41 5c                	pop    %r12
+ 71b:	41 5d                	pop    %r13
+ 71d:	41 5e                	pop    %r14
+ 71f:	41 5f                	pop    %r15
+ 721:	5d                   	pop    %rbp
+ 722:	c3                   	retq   
+ 723:	41 81 3c 24 ef be ad 	cmpl   $0xdeadbeef,(%r12)
+ 72a:	de 
+ 72b:	0f 84 3d 01 00 00    	je     86e <dev_write+0x22e>
+ 731:	4c 89 ee             	mov    %r13,%rsi
+ 734:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 73b:	e8 00 00 00 00       	callq  740 <dev_write+0x100>
+ 740:	4c 89 e7             	mov    %r12,%rdi
+ 743:	e8 00 00 00 00       	callq  748 <dev_write+0x108>
+ 748:	48 c7 c0 ea ff ff ff 	mov    $0xffffffffffffffea,%rax
+ 74f:	eb c7                	jmp    718 <dev_write+0xd8>
+ 751:	44 89 ff             	mov    %r15d,%edi
+ 754:	31 d2                	xor    %edx,%edx
+ 756:	be c0 00 60 00       	mov    $0x6000c0,%esi
+ 75b:	48 c1 e7 03          	shl    $0x3,%rdi
+ 75f:	e8 00 00 00 00       	callq  764 <dev_write+0x124>
+ 764:	41 8d 57 ff          	lea    -0x1(%r15),%edx
+ 768:	49 89 46 08          	mov    %rax,0x8(%r14)
+ 76c:	41 c7 06 00 00 00 00 	movl   $0x0,(%r14)
+ 773:	49 c7 46 10 ff ff ff 	movq   $0xffffffffffffffff,0x10(%r14)
+ 77a:	ff 
+ 77b:	48 8d 3c d5 08 00 00 	lea    0x8(,%rdx,8),%rdi
+ 782:	00 
+ 783:	ba 02 00 00 00       	mov    $0x2,%edx
+ 788:	eb 10                	jmp    79a <dev_write+0x15a>
+ 78a:	48 83 c3 08          	add    $0x8,%rbx
+ 78e:	83 c2 02             	add    $0x2,%edx
+ 791:	48 39 df             	cmp    %rbx,%rdi
+ 794:	0f 84 73 ff ff ff    	je     70d <dev_write+0xcd>
+ 79a:	89 d1                	mov    %edx,%ecx
+ 79c:	41 8b 0c 8c          	mov    (%r12,%rcx,4),%ecx
+ 7a0:	89 0c 18             	mov    %ecx,(%rax,%rbx,1)
+ 7a3:	8d 42 01             	lea    0x1(%rdx),%eax
+ 7a6:	41 8b 0c 84          	mov    (%r12,%rax,4),%ecx
+ 7aa:	49 8b 46 08          	mov    0x8(%r14),%rax
+ 7ae:	89 4c 18 04          	mov    %ecx,0x4(%rax,%rbx,1)
+ 7b2:	49 8b 46 08          	mov    0x8(%r14),%rax
+ 7b6:	8b 34 18             	mov    (%rax,%rbx,1),%esi
+ 7b9:	3b 35 00 00 00 00    	cmp    0x0(%rip),%esi        # 7bf <dev_write+0x17f>
+ 7bf:	72 c9                	jb     78a <dev_write+0x14a>
+ 7c1:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 7c8:	e8 00 00 00 00       	callq  7cd <dev_write+0x18d>
+ 7cd:	4c 89 e7             	mov    %r12,%rdi
+ 7d0:	e8 00 00 00 00       	callq  7d5 <dev_write+0x195>
+ 7d5:	48 c7 c0 f2 ff ff ff 	mov    $0xfffffffffffffff2,%rax
+ 7dc:	e9 37 ff ff ff       	jmpq   718 <dev_write+0xd8>
+ 7e1:	48 c7 c0 f4 ff ff ff 	mov    $0xfffffffffffffff4,%rax
+ 7e8:	e9 2b ff ff ff       	jmpq   718 <dev_write+0xd8>
+ 7ed:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 7f4:	e8 00 00 00 00       	callq  7f9 <dev_write+0x1b9>
+ 7f9:	4c 89 e7             	mov    %r12,%rdi
+ 7fc:	e8 00 00 00 00       	callq  801 <dev_write+0x1c1>
+ 801:	48 c7 c0 f2 ff ff ff 	mov    $0xfffffffffffffff2,%rax
+ 808:	e9 0b ff ff ff       	jmpq   718 <dev_write+0xd8>
+ 80d:	83 ce ff             	or     $0xffffffff,%esi
+ 810:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 817:	e8 00 00 00 00       	callq  81c <dev_write+0x1dc>
+ 81c:	48 c7 c0 ea ff ff ff 	mov    $0xffffffffffffffea,%rax
+ 823:	e9 f0 fe ff ff       	jmpq   718 <dev_write+0xd8>
+ 828:	8d 50 ff             	lea    -0x1(%rax),%edx
+ 82b:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 832:	e8 00 00 00 00       	callq  837 <dev_write+0x1f7>
+ 837:	4c 89 e7             	mov    %r12,%rdi
+ 83a:	e8 00 00 00 00       	callq  83f <dev_write+0x1ff>
+ 83f:	48 c7 c0 ea ff ff ff 	mov    $0xffffffffffffffea,%rax
+ 846:	e9 cd fe ff ff       	jmpq   718 <dev_write+0xd8>
+ 84b:	4c 89 ee             	mov    %r13,%rsi
+ 84e:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 855:	e8 00 00 00 00       	callq  85a <dev_write+0x21a>
+ 85a:	4c 89 e7             	mov    %r12,%rdi
+ 85d:	e8 00 00 00 00       	callq  862 <dev_write+0x222>
+ 862:	48 c7 c0 f2 ff ff ff 	mov    $0xfffffffffffffff2,%rax
+ 869:	e9 aa fe ff ff       	jmpq   718 <dev_write+0xd8>
+ 86e:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+ 875:	e8 00 00 00 00       	callq  87a <dev_write+0x23a>
+ 87a:	e8 00 00 00 00       	callq  87f <dev_write+0x23f>
+ 87f:	b8 04 00 00 00       	mov    $0x4,%eax
+ 884:	e9 8f fe ff ff       	jmpq   718 <dev_write+0xd8>
+
+Disassembly of section .text.unlikely:
+
+0000000000000000 <cleanup>:
+   0:	e8 00 00 00 00       	callq  5 <cleanup+0x5>
+   5:	55                   	push   %rbp
+   6:	85 ff                	test   %edi,%edi
+   8:	48 89 e5             	mov    %rsp,%rbp
+   b:	74 1e                	je     2b <cleanup+0x2b>
+   d:	48 8b 3d 00 00 00 00 	mov    0x0(%rip),%rdi        # 14 <cleanup+0x14>
+  14:	8b 35 00 00 00 00    	mov    0x0(%rip),%esi        # 1a <cleanup+0x1a>
+  1a:	e8 00 00 00 00       	callq  1f <cleanup+0x1f>
+  1f:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+  26:	e8 00 00 00 00       	callq  2b <cleanup+0x2b>
+  2b:	48 8b 3d 00 00 00 00 	mov    0x0(%rip),%rdi        # 32 <cleanup+0x32>
+  32:	48 85 ff             	test   %rdi,%rdi
+  35:	74 05                	je     3c <cleanup+0x3c>
+  37:	e8 00 00 00 00       	callq  3c <cleanup+0x3c>
+  3c:	8b 3d 00 00 00 00    	mov    0x0(%rip),%edi        # 42 <cleanup+0x42>
+  42:	83 ff ff             	cmp    $0xffffffff,%edi
+  45:	74 0a                	je     51 <cleanup+0x51>
+  47:	be 01 00 00 00       	mov    $0x1,%esi
+  4c:	e8 00 00 00 00       	callq  51 <cleanup+0x51>
+  51:	5d                   	pop    %rbp
+  52:	c3                   	retq   
+
+Disassembly of section .init.text:
+
+0000000000000000 <init_module>:
+   0:	e8 00 00 00 00       	callq  5 <init_module+0x5>
+   5:	55                   	push   %rbp
+   6:	31 f6                	xor    %esi,%esi
+   8:	48 c7 c1 00 00 00 00 	mov    $0x0,%rcx
+   f:	ba 01 00 00 00       	mov    $0x1,%edx
+  14:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+  1b:	48 89 e5             	mov    %rsp,%rbp
+  1e:	e8 00 00 00 00       	callq  23 <init_module+0x23>
+  23:	85 c0                	test   %eax,%eax
+  25:	79 13                	jns    3a <init_module+0x3a>
+  27:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+  2e:	e8 00 00 00 00       	callq  33 <init_module+0x33>
+  33:	31 ff                	xor    %edi,%edi
+  35:	e9 ae 00 00 00       	jmpq   e8 <init_module+0xe8>
+  3a:	8b 35 00 00 00 00    	mov    0x0(%rip),%esi        # 40 <init_module+0x40>
+  40:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+  47:	c1 fe 14             	sar    $0x14,%esi
+  4a:	e8 00 00 00 00       	callq  4f <init_module+0x4f>
+  4f:	48 c7 c2 00 00 00 00 	mov    $0x0,%rdx
+  56:	48 c7 c6 00 00 00 00 	mov    $0x0,%rsi
+  5d:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+  64:	e8 00 00 00 00       	callq  69 <init_module+0x69>
+  69:	48 85 c0             	test   %rax,%rax
+  6c:	48 89 05 00 00 00 00 	mov    %rax,0x0(%rip)        # 73 <init_module+0x73>
+  73:	74 6a                	je     df <init_module+0xdf>
+  75:	8b 15 00 00 00 00    	mov    0x0(%rip),%edx        # 7b <init_module+0x7b>
+  7b:	31 c9                	xor    %ecx,%ecx
+  7d:	31 f6                	xor    %esi,%esi
+  7f:	49 c7 c0 00 00 00 00 	mov    $0x0,%r8
+  86:	48 89 c7             	mov    %rax,%rdi
+  89:	e8 00 00 00 00       	callq  8e <init_module+0x8e>
+  8e:	48 85 c0             	test   %rax,%rax
+  91:	74 4c                	je     df <init_module+0xdf>
+  93:	48 c7 c6 00 00 00 00 	mov    $0x0,%rsi
+  9a:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+  a1:	e8 00 00 00 00       	callq  a6 <init_module+0xa6>
+  a6:	8b 35 00 00 00 00    	mov    0x0(%rip),%esi        # ac <init_module+0xac>
+  ac:	ba 01 00 00 00       	mov    $0x1,%edx
+  b1:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+  b8:	e8 00 00 00 00       	callq  bd <init_module+0xbd>
+  bd:	ff c0                	inc    %eax
+  bf:	74 22                	je     e3 <init_module+0xe3>
+  c1:	48 c7 c2 00 00 00 00 	mov    $0x0,%rdx
+  c8:	48 c7 c6 00 00 00 00 	mov    $0x0,%rsi
+  cf:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+  d6:	e8 00 00 00 00       	callq  db <init_module+0xdb>
+  db:	31 c0                	xor    %eax,%eax
+  dd:	eb 11                	jmp    f0 <init_module+0xf0>
+  df:	31 ff                	xor    %edi,%edi
+  e1:	eb 05                	jmp    e8 <init_module+0xe8>
+  e3:	bf 01 00 00 00       	mov    $0x1,%edi
+  e8:	e8 00 00 00 00       	callq  ed <init_module+0xed>
+  ed:	83 c8 ff             	or     $0xffffffff,%eax
+  f0:	5d                   	pop    %rbp
+  f1:	c3                   	retq   
+
+Disassembly of section .exit.text:
+
+0000000000000000 <cleanup_module>:
+   0:	55                   	push   %rbp
+   1:	bf 01 00 00 00       	mov    $0x1,%edi
+   6:	48 89 e5             	mov    %rsp,%rbp
+   9:	e8 00 00 00 00       	callq  e <cleanup_module+0xe>
+   e:	48 c7 c7 00 00 00 00 	mov    $0x0,%rdi
+  15:	e8 00 00 00 00       	callq  1a <cleanup_module+0x1a>
+  1a:	5d                   	pop    %rbp
+  1b:	c3                   	retq   
