@@ -78,7 +78,7 @@ static __u32 origin_id;
 static __u32 num_nodes = NO_NODE_ID;
 static __u32 current_node_id = NO_NODE_ID;
 
-static Node * nodes = NULL;
+static Node * global_nodes = NULL;
 
 //////////////// END of DIJKSTRA SECTION
 
@@ -140,6 +140,7 @@ static void free_nodes(void);
 DECLARE_COMPLETION(comp);
 struct my_data {
     int repetitions;
+    Node * nodes_ptr;
     struct completion *comp;
 };
 
@@ -176,6 +177,7 @@ void call_dijkstra_kernel_thread(void) {
 
 	data->comp = &comp;
 	data->repetitions = test_repetitions;
+	data->nodes_ptr = global_nodes;
 	thread = kthread_run(dijkstra_kernel_thread, (void*) data, "dijkstra_thread%d", 0);
 
     wait_for_completion(&comp);
@@ -191,9 +193,9 @@ void call_dijkstra_kernel_thread(void) {
 
 		for (i = num_nodes-10; i< num_nodes; i++) {
 	//		*pos++ = i;
-	//		*pos++ = nodes[i].distance;
-	//		*pos++ = nodes[i].prev_node_id;
-			printk(KERN_INFO "%u %u %u\n", i, nodes[i].distance, nodes[i].prev_node_id);
+	//		*pos++ = global_nodes[i].distance;
+	//		*pos++ = global_nodes[i].prev_node_id;
+			printk(KERN_INFO "%u %u %u\n", i, global_nodes[i].distance, global_nodes[i].prev_node_id);
 		}
 
 #endif
@@ -218,6 +220,8 @@ int dijkstra_kernel_thread(void *arg) {
 	int repetitions;
 
 	struct my_data *data = (struct my_data*)arg;
+
+	Nodes * nodes = data->nodes_ptr;
 
 	if (num_nodes == NO_NODE_ID) {
 		printk(KERN_INFO "dijkstra_kernel_thread: nothing to do!\n");
@@ -609,7 +613,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 
     // read node data
 
-    n = &nodes[node_id];
+    n = &global_nodes[node_id];
 
     n->num_adjacents = num_adjacents;
     n->adjacent = num_adjacents > 0 ? kvmalloc_node(sizeof(Peer) * num_adjacents, GFP_KERNEL, NUMA_NODE) : NULL;
@@ -654,12 +658,12 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 static void free_nodes() {
 	u32 i;
 
-	if (nodes == NULL)
+	if (global_nodes == NULL)
 		return;
 
 	for (i = 0; i < num_nodes; i++) {
-		if (nodes[i].adjacent != NULL)
-			kvfree(nodes[i].adjacent);
+		if (global_nodes[i].adjacent != NULL)
+			kvfree(global_nodes[i].adjacent);
 	}
 
 }
@@ -683,12 +687,12 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 					break;
 			case WR_NUM_NODES:
-					if (nodes != NULL) {
+					if (global_nodes != NULL) {
 						// TODO: check for dijstra in execution
-						printk(KERN_INFO "dijkstrachar, etx_ioctl: kvfree nodes\n");
+						printk(KERN_INFO "dijkstrachar, etx_ioctl: kvfree global_nodes\n");
 
 						// https://www.kernel.org/doc/html/latest/core-api/mm-api.html#c.kvmalloc_node
-						kvfree(nodes);
+						kvfree(global_nodes);
 
 					}
 					res = copy_from_user(&num_nodes ,(__u32*) arg, sizeof(num_nodes));
@@ -700,17 +704,17 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 					// https://www.linuxjournal.com/article/6930
 					// kmalloc() function returns physically and therefore virtually contiguous memory
 					//
-//					nodes = kmalloc(sizeof(Node) * num_nodes, GFP_KERNEL);
+//					global_nodes = kmalloc(sizeof(Node) * num_nodes, GFP_KERNEL);
 
 					// https://www.kernel.org/doc/html/latest/vm/numa.html
 					// https://www.kernel.org/doc/html/latest/core-api/mm-api.html#c.kvmalloc_node
-					nodes = kvmalloc_node(sizeof(Node) * num_nodes, GFP_KERNEL, NUMA_NODE /* NUMA node*/);
+					global_nodes = kvmalloc_node(sizeof(Node) * num_nodes, GFP_KERNEL, NUMA_NODE /* NUMA node*/);
 
 					printk(KERN_INFO "etx_ioctl: after kmalloc %ld bytes\n", sizeof(Node) * num_nodes);
 
 					printk(KERN_INFO "etx_ioctl: sizeof(Node) = %lu\n", sizeof(Node));
 
-					memset(nodes, 0, sizeof(Node) * num_nodes);
+					memset(global_nodes, 0, sizeof(Node) * num_nodes);
 
 					break;
 			case RD_NUM_NODES:
@@ -743,12 +747,12 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  */
 static int dev_release(struct inode *inodep, struct file *filep) {
 
-	if (nodes != NULL) {
+	if (global_nodes != NULL) {
 		// TODO: check for dijstra during execution
-		printk(KERN_INFO "dijkstrachar, dev_release: kvfree nodes\n");
+		printk(KERN_INFO "dijkstrachar, dev_release: kvfree global_nodes\n");
 		free_nodes();
-		kvfree(nodes);
-		nodes = NULL;
+		kvfree(global_nodes);
+		global_nodes = NULL;
 		origin_id = 0;
 	}
 
