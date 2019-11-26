@@ -11,12 +11,15 @@
 #include <time.h>
 #include <linux/types.h>
 #include <inttypes.h>
+#include <errno.h>
 
 
 #ifdef USE_RDTSC
 #include <x86intrin.h>
 #endif
 
+static int number_of_repetitions_parameter = 20;
+static int wait_period_parameter = 0; // milliseconds
 
 typedef struct peer {
 	uint32_t id;
@@ -39,13 +42,25 @@ void ricevi_risultati(char * file_name, int * pipe);
 int main(int argc, char *argv[]){
 
 	if (argc == 1) {
-		printf("argument: specify input file path.");
+		printf("argument1: specify input file path.\n");
+		printf("argument2 (optional, default: 20): number of test repetitions\n");
+		printf("argument3 (optional, default: 0): time period (milliseconds) of sleep between tests \n");
 
 		return 1;
 	}
 
 	char * input_file_name = argv[1];  //"./grafo.txt";
 	char * output_file_name = "./output.txt";
+
+	if (argc >= 3) {
+		sscanf(argv[2],"%u",&number_of_repetitions_parameter);
+		printf("number_of_repetitions set to %u\n", number_of_repetitions_parameter);
+	}
+
+	if (argc >= 4) {
+		sscanf(argv[3],"%u",&wait_period_parameter);
+		printf("number_of_repetitions set to %u\n", wait_period_parameter);
+	}
 
 	//kernel_process work only with stdin, stdout (prepare them before passing to kernel_process)
 	int first_pipe[2];
@@ -202,6 +217,11 @@ void kernel_process(int fd_in, int fd_out) {
 	struct timespec start, stop;
 	int catch_error=0, dowhile_counter=0;
 
+	struct timespec sleep_time;
+
+	sleep_time.tv_sec = 0;
+	sleep_time.tv_nsec = 1000000UL * wait_period_parameter;
+
 //	//catch eventual error
 //	read(fd_in, &catch_error, sizeof(int));
 //	//fprintf(stdout, "catch error %d\n", catch_error);
@@ -271,7 +291,7 @@ void kernel_process(int fd_in, int fd_out) {
 
 	close(fd_in);
 
-	for (int number_of_repetitions = 0; number_of_repetitions < 20; number_of_repetitions++) {
+	for (int number_of_repetitions = 0; number_of_repetitions < number_of_repetitions_parameter; number_of_repetitions++) {
 
 		uint32_t unvisited=num_nodes;
 		uint32_t current_node_id;
@@ -329,6 +349,12 @@ void kernel_process(int fd_in, int fd_out) {
 		double result = (stop.tv_sec - start.tv_sec) * 1e9 + (stop.tv_nsec - start.tv_nsec) /*/ 1e3*/;
 		printf("[kernel]  total cycles: %llu , tempo di CPU consumato: "
 				"%lf nanoseconds, unvisited: %d, dowhile_counter: %d\n", t2 - t1, result, unvisited, dowhile_counter);
+
+
+		if (wait_period_parameter > 0) {
+			if (nanosleep(&sleep_time, NULL) == -1 && errno == EINTR)
+				printf("nanosleep interrupted by signal\n");
+		}
 
 	}
 
