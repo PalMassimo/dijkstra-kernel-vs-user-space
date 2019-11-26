@@ -59,6 +59,10 @@ int main(int argc, char *argv[]){
 
 	if (argc >= 4) {
 		sscanf(argv[3],"%u",&wait_period_parameter);
+
+		if (wait_period_parameter > 999999999)
+			wait_period_parameter = 999999999;
+
 		printf("number_of_repetitions set to %u\n", wait_period_parameter);
 	}
 
