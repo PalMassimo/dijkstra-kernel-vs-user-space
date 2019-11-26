@@ -40,6 +40,16 @@
 
 #include <linux/kthread.h>
 
+#include <linux/delay.h>  // msleep
+
+
+static u32 test_repetitions=20;
+module_param(test_repetitions, uint, 0660);
+MODULE_PARM_DESC(test_repetitions, "Number of test repetitions (default: 20)");
+
+static u32 wait_period = 0UL;
+module_param(wait_period, uint, 0660);
+MODULE_PARM_DESC(wait_period, "wait period (milliseconds) between tests (default: 0)");
 
 
 // https://embetronicx.com/tutorials/linux/device-drivers/ioctl-tutorial-in-linux/
@@ -165,7 +175,7 @@ void call_dijkstra_kernel_thread(void) {
     }
 
 	data->comp = &comp;
-	data->repetitions = 20;
+	data->repetitions = test_repetitions;
 	thread = kthread_run(dijkstra_kernel_thread, (void*) data, "dijkstra_thread%d", 0);
 
     wait_for_completion(&comp);
@@ -297,6 +307,13 @@ int dijkstra_kernel_thread(void *arg) {
 				"unvisited %u  dowhile_counter %u\n", t2 - t1, deltat, unvisited, dowhile_counter);
 
 
+		if (wait_period > 0 && wait_period < 20) {
+			// https://www.kernel.org/doc/html/latest/timers/timers-howto.html
+			 usleep_range(wait_period * 1000, (wait_period+1 * 1000));
+		} else if (wait_period >= 20) {
+			msleep(wait_period);
+		}
+
 		// write results in a buffer
 		// TODO
 
@@ -413,6 +430,9 @@ static int __init myinit(void)
 		goto error;
 
 	mutex_init(&dijkstrachar_mutex);          // Initialize the mutex dynamically
+
+	printk(KERN_INFO"test_repetitions = %u\n", test_repetitions);
+	printk(KERN_INFO"wait_period = %u\n", wait_period);
 
     return 0;
 
