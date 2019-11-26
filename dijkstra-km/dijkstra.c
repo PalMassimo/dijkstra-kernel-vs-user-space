@@ -221,7 +221,7 @@ int dijkstra_kernel_thread(void *arg) {
 
 	struct my_data *data = (struct my_data*)arg;
 
-	Nodes * nodes = data->nodes_ptr;
+	Node * nodes = data->nodes_ptr;
 
 	if (num_nodes == NO_NODE_ID) {
 		printk(KERN_INFO "dijkstra_kernel_thread: nothing to do!\n");
